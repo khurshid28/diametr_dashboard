@@ -76,19 +76,7 @@ export default function AppsPage() {
         {data && (
           <ComponentCard
             title="Arizalar Jadvali"
-            action={
-              <>
-                <div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    endIcon={<DownloadIcon className="size-5 fill-white" />}
-                  >
-                    Download
-                  </Button>
-                </div>
-              </>
-            }
+            
           >
             <AppsTable data={data} refetch={refetch} />
           </ComponentCard>

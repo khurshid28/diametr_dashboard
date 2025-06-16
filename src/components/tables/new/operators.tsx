@@ -30,6 +30,7 @@ import Label from "../../form/Label";
 import { Modal } from "../../ui/modal";
 import Select from "../../form/Select";
 import FileInput from "../../form/input/FileInput";
+import { formatPhoneNumber } from "../../../service/formatters/phone.format";
 
 // interface Order {
 //   id: number;
@@ -503,7 +504,7 @@ export default function OperatorsTable({ data,  refetch }: {
                         {order.fullname}
                       </span>
                       <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
-                        {order.phone}
+                        {  formatPhoneNumber(order?.phone ) }
                       </span>
                     </div>
                   </div>

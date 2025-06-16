@@ -4,6 +4,7 @@ import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import Moment from "moment";
+import { formatPhoneNumber } from "../../service/formatters/phone.format";
 
 export default function UserInfoCard() {
   const { isOpen, openModal, closeModal } = useModal();
@@ -46,7 +47,7 @@ export default function UserInfoCard() {
                 Phone
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-              {user?.phone ?? ""}
+          {  formatPhoneNumber(user?.phone ) }
               </p>
             </div>
 
