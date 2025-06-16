@@ -27,7 +27,8 @@ import {
   EnvelopeIcon,
   ChatIcon,
   TaskIcon,
-  ArrowRightIcon
+  ArrowRightIcon,
+  FileIcon
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 import SidebarWidget from "./SidebarWidget";
@@ -57,6 +58,14 @@ const navItems: NavItem[] = [
     name: "Operatorlar",
     icon: <GroupIcon />,
     path: "/operators", 
+  },
+
+
+  
+  {
+    name: "Arizalar",
+    icon: <FileIcon />,
+    path: "/apps", 
   },
 
  

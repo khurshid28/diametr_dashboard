@@ -22,6 +22,7 @@ import MerchantsPage from "./pages/new/Merchants";
 import OperatorsPage from "./pages/new/Operators";
 import FillialsPage from "./pages/new/Fillials";
 import { ToastContainer } from "react-toastify";
+import AppsPage from "./pages/new/Apps";
 
 export default function App() {
   return (
@@ -36,6 +37,7 @@ export default function App() {
              <Route path="/merchants" element={<MerchantsPage />} />
              <Route path="/fillials" element={<FillialsPage />} />
              <Route path="/operators" element={< OperatorsPage />} />
+              <Route path="/apps" element={<AppsPage />} />
              
 
 
