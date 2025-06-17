@@ -45,7 +45,7 @@ import FileInput from "../../form/input/FileInput";
 //   status: string;
 // }
 
-interface FillialItemProps {
+export interface FillialItemProps {
   id: number;
   name: string;
   image: string;

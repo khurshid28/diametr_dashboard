@@ -59,6 +59,39 @@ export default function AppsPage() {
     fetcher: fetchApps,
   });
 
+   let [merchants, setmerchants] = useState<HTMLOptionElement[]>([]);
+  const fetchmerchants = useCallback(() => {
+    return axiosClient.get('/merchant/all').then(res => res.data);
+  }, []);
+
+   const { data: groups, isLoading: isLoadingGroups, error: errorIsGroups, refetch: refetchGroups } = useFetchWithLoader({
+    fetcher: fetchmerchants,
+    onSuccess: useCallback((data: any[]) => {
+      setmerchants((data as any[]).map((e, index) => {
+        return new Option(`${e.name}`, `${e.id}`)
+      }));
+      
+    }, [])
+  });
+
+
+
+
+   let [fillials, setfillials] = useState<HTMLOptionElement[]>([]);
+  const fetchfillials = useCallback(() => {
+    return axiosClient.get('/fillial/all').then(res => res.data);
+  }, []);
+
+   const {  } = useFetchWithLoader({
+    fetcher: fetchfillials,
+    onSuccess: useCallback((data: any[]) => {
+      setfillials((data as any[]).map((e, index) => {
+        return new Option(`${e.name}`, `${e.id}`)
+      }));
+      
+    }, [])
+  });
+
   return (
     <>
       <PageMeta
@@ -78,7 +111,7 @@ export default function AppsPage() {
             title="Arizalar Jadvali"
             
           >
-            <AppsTable data={data} refetch={refetch} />
+            <AppsTable data={data} refetch={refetch} merchants={merchants} fillials={fillials}/>
           </ComponentCard>
         )}
       </div>

@@ -51,7 +51,7 @@ import { formatPhoneNumber } from "../../../service/formatters/phone.format";
 //   showPassword: boolean;
 // }
 
-interface OperatorItemProps {
+export interface OperatorItemProps {
   id: number;
   fullname: string;
   image: string;

@@ -41,7 +41,7 @@ import FileInput from "../../form/input/FileInput";
 //   status: string;
 // }
 
-interface MerchantItemProps {
+export interface MerchantItemProps {
 
   id: number;
   name: string;
