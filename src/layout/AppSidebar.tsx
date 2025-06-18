@@ -67,6 +67,12 @@ const navItems: NavItem[] = [
     icon: <FileIcon />,
     path: "/apps", 
   },
+    {
+    name: "Statistics",
+    icon: <PieChartIcon />,
+    path: "/statistics", 
+  },
+
 
  
   

@@ -33,17 +33,6 @@ import DropzoneComponent from "../../form/form-elements/DropZone";
 import FileInputExample from "../../form/form-elements/FileInputExample";
 import FileInput from "../../form/input/FileInput";
 
-// interface Order {
-//   id: number;
-//   name: string;
-//   merchant: {
-//     name: string;
-//   };
-//   region: string;
-//   image: string;
-//   createdAt: Date;
-//   status: string;
-// }
 
 export interface FillialItemProps {
   id: number;

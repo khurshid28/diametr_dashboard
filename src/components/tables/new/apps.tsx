@@ -363,7 +363,7 @@ export default function AppsTable({
           </span> */}
 
           <span className="flex fex-row items-center gap-2  text-gray-500 text-theme-xs dark:text-gray-400">
-           <ShootingStarIcon className="size-5 fill-white" /> TOTAL AMOUNT : {formatMoney(totalAmount())}
+           <ShootingStarIcon className="size-5 fill-white" /> TOTAL AMOUNT : {formatMoney(totalAmount())} UZS
           </span>
 
           <span className="flex fex-row items-center gap-2  text-gray-500 text-theme-xs dark:text-gray-400">
@@ -436,7 +436,12 @@ export default function AppsTable({
               >
                 Fillial
               </TableCell>
-
+ <TableCell
+                isHeader
+                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+              >
+                Merchant
+              </TableCell>
               <TableCell
                 isHeader
                 className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
@@ -525,6 +530,11 @@ export default function AppsTable({
                   <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
                     {order.fillial?.region}
                   </span>
+                </TableCell>
+
+                  <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                  {order.merchant?.name}
+                  
                 </TableCell>
                 <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                   {formatMoney(order.limit)}

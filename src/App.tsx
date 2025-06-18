@@ -23,6 +23,7 @@ import OperatorsPage from "./pages/new/Operators";
 import FillialsPage from "./pages/new/Fillials";
 import { ToastContainer } from "react-toastify";
 import AppsPage from "./pages/new/Apps";
+import StatisticsPage from "./pages/new/Statistics";
 
 export default function App() {
   return (
@@ -38,6 +39,7 @@ export default function App() {
              <Route path="/fillials" element={<FillialsPage />} />
              <Route path="/operators" element={< OperatorsPage />} />
               <Route path="/apps" element={<AppsPage />} />
+               <Route path="/statistics" element={<StatisticsPage />} />
              
 
 
