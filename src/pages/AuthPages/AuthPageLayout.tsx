@@ -22,12 +22,12 @@ export default function AuthLayout({
                   width={120}
                   height={48}
                   
-                  src="/images/premium_pay_logo.png"
+                  src="/images/logo.svg"
                   alt="Logo"
                 />
               </Link>
               <p className="text-center text-gray-400 dark:text-white/60">
-                Welcome Premium Pay | Create Fillial and User
+                Welcome Diametr Dashboard
               </p>
             </div>
           </div>

@@ -80,8 +80,8 @@ export default function FillialsPage() {
   return (
     <>
       <PageMeta
-        title="Fillials | PremiumPay Dashboard"
-        description="PremiumPay Dashboard"
+        title="Fillials | Diametr Dashboard"
+        description="Diametr Dashboard"
       />
       <PageBreadcrumb pageTitle="Fillials" />
    

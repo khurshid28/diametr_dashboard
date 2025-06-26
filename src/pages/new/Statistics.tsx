@@ -87,8 +87,8 @@ export default function StatisticsPage() {
   return (
     <>
       <PageMeta
-        title="Statistics | PremiumPay Dashboard"
-        description="PremiumPay Dashboard"
+        title="Statistics | Diametr Dashboard"
+        description="Diametr Dashboard"
       />
       <PageBreadcrumb pageTitle="Statistics" />
    

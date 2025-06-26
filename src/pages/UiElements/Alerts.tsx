@@ -7,8 +7,8 @@ export default function Alerts() {
   return (
     <>
       <PageMeta
-        title="React.js Alerts Dashboard | PremiumPay Dashboard"
-        description="This is React.js Alerts Dashboard page - PremiumPay Dashboard"
+        title="React.js Alerts Dashboard | Diametr Dashboard"
+        description="This is React.js Alerts Dashboard page - Diametr Dashboard"
       />
       <PageBreadcrumb pageTitle="Alerts" />
       <div className="space-y-5 sm:space-y-6">

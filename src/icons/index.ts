@@ -62,7 +62,30 @@ import { ReactComponent as DeleteIcon } from "./delete.svg?react";
 
 import { ReactComponent as SettingsIcon } from "./settings.svg?react";
 
+import { ReactComponent as ShopIcon } from "./store-icon.svg?react";
+
+import { ReactComponent as CategoryIcon } from "./category.svg?react";
+import { ReactComponent as NewsIcon } from "./news.svg?react";
+import { ReactComponent as ServiceIcon } from "./services.svg?react";
+
+
+import { ReactComponent as WorkerIcon } from "./worker.svg?react";
+import { ReactComponent as AdIcon } from "./ad.svg?react";
+import { ReactComponent as CardIcon } from "./card.svg?react";
+
+import { ReactComponent as MoneyIcon } from "./money.svg?react";
+import { ReactComponent as DeliveryIcon } from "./delivery.svg?react";
+
 export {
+  ShopIcon,
+  CategoryIcon,
+  NewsIcon,
+  WorkerIcon,
+  CardIcon,
+  DeliveryIcon,
+  MoneyIcon,
+  AdIcon,
+  ServiceIcon,
   ErrorHexaIcon,
   AlertHexaIcon,
   MoreDotIcon,

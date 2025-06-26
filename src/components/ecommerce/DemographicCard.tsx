@@ -94,7 +94,7 @@ export default function DemographicCard() {
                 France
               </p>
               <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
-                589 Credits
+                589 Products
               </span>
             </div>
           </div>

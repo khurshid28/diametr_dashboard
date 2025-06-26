@@ -25,7 +25,7 @@ const tableData: Product[] = [
     id: 1,
     name: "MacBook Pro 13”",
     variants: "2 Variants",
-    credit_type: "Mikrozaym",
+    credit_type: "Texnomart",
     price: "21 460 000",
     status: "Finished",
     image: "/images/product/product-01.jpg", // Replace with actual image URL
@@ -34,38 +34,12 @@ const tableData: Product[] = [
     id: 2,
     name: "Apple Watch Ultra",
     variants: "1 Variant",
-    credit_type: "Mikrozaym",
+    credit_type: "Shohruh market",
     price: "1 320 000",
     status: "Pending",
     image: "/images/product/product-02.jpg", // Replace with actual image URL
   },
-  {
-    id: 3,
-    name: "Malibu 2",
-    variants: "2 Variants",
-    credit_type: "Avto",
-    price: "324 560 000",
-    status: "Finished",
-    image: "/images/product/product-03.jpg", // Replace with actual image URL
-  },
-  {
-    id: 4,
-    name: "2 xonali uy",
-    variants: "2 Variants",
-    credit_type: "Ipoteka",
-    price: "450 300 000",
-    status: "Finished",
-    image: "/images/product/product-04.jpg", // Replace with actual image URL
-  },
-  {
-    id: 5,
-    name: "Cobalt",
-    variants: "1 Variant",
-    credit_type: "Avto",
-    price: "108 400 000",
-    status: "Finished",
-    image: "/images/product/product-05.jpg", // Replace with actual image URL
-  },
+  
 ];
 
 export default function RecentOrders() {
@@ -74,7 +48,7 @@ export default function RecentOrders() {
       <div className="flex flex-col gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Recent Credits
+            Recent Products
           </h3>
         </div>
 
@@ -144,7 +118,7 @@ export default function RecentOrders() {
                 isHeader
                 className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
               >
-                Credit type
+                Shop
               </TableCell>
               <TableCell
                 isHeader

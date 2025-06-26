@@ -6,8 +6,8 @@ export default function SignUp() {
   return (
     <>
       <PageMeta
-        title="PremiumPay Dashboard"
-        description="This is React.js SignUp Tables Dashboard page - PremiumPay Dashboard"
+        title="Diametr Dashboard"
+        description="This is React.js SignUp Tables Dashboard page - Diametr Dashboard"
       />
       <AuthLayout>
         <SignUpForm />

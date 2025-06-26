@@ -66,8 +66,8 @@ export default function OperatorsPage() {
   return (
     <>
       <PageMeta
-        title="Operators | PremiumPay Dashboard"
-        description="PremiumPay Dashboard"
+        title="Operators | Diametr Dashboard"
+        description="Diametr Dashboard"
       />
       <PageBreadcrumb pageTitle="Operators" />
 

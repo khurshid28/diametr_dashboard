@@ -28,7 +28,19 @@ import {
   ChatIcon,
   TaskIcon,
   ArrowRightIcon,
-  FileIcon
+  FileIcon,
+  BoxIconLine,
+  TimeIcon,
+  DollarLineIcon,
+  MailIcon,
+  UserIcon,
+  ShopIcon,
+  CategoryIcon,
+  NewsIcon,
+  ServiceIcon,
+  WorkerIcon,
+  AdIcon,
+  CardIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 import SidebarWidget from "./SidebarWidget";
@@ -43,49 +55,64 @@ type NavItem = {
 const navItems: NavItem[] = [
   {
     icon: <GridIcon />,
-    name: "Merchantlar",
-    path: "/merchants", 
-  },
+    name: "Dashboard",
 
+    subItems: [
+      {
+        name: "Statistics",
+        path: "/",
+      },
+    ],
+  },
   {
-    name: "Filliallar",
-    icon: <BoxIcon />,
-    path: "/fillials", 
-   
+    icon: <ShopIcon />,
+    name: "Shops",
+    path: "/shops",
   },
 
-  {
-    name: "Operatorlar",
-    icon: <GroupIcon />,
-    path: "/operators", 
+   {
+    icon: <CategoryIcon />,
+    name: "Categories",
+    path: "/categories",
+  },
+
+   {
+    icon: <BoxCubeIcon />,
+    name: "Products",
+    path: "/products",
   },
 
 
-  
-  {
-    name: "Arizalar",
-    icon: <FileIcon />,
-    path: "/apps", 
-  },
     {
-    name: "Statistics",
-    icon: <PieChartIcon />,
-    path: "/statistics", 
+    icon: <CardIcon />,
+    name: "Payments",
+    path: "/payments",
   },
 
+   {
+    icon: < NewsIcon/>,
+    name: "News",
+    path: "/news",
+  },
 
- 
-  
- 
+   {
+    icon: <AdIcon />,
+    name: "Ads",
+    path: "/ads",
+  },
 
- 
-  
+    {
+    icon: <ServiceIcon />,
+    name: "Services",
+    path: "/services",
+  },
 
- 
-  
-  
+    {
+    icon: <WorkerIcon />,
+    name: "Workers",
+    path: "/workers",
+  },
 ];
-
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
@@ -303,31 +330,22 @@ const AppSidebar: React.FC = () => {
             <div className="flex flex-row gap-4 items-center">
               <img
                 className="dark:hidden "
-                src="/images/premium_pay_logo.png"
+                src="/images/logo_long.png"
                 alt="Logo"
                 width={160}
-               
               />
               <img
                 className="hidden dark:block "
-                src="/images/premium_pay_logo.png"
+                src="/images/logo_long.png"
                 alt="Logo"
                 width={160}
-               
               />
-                {/* <p className="text-center font-medium  text-theme-md hover:text-gray-900   dark:text-white">
-                PremiumPay
+              {/* <p className="text-center font-medium  text-theme-md hover:text-gray-900   dark:text-white">
+                Diametr
               </p> */}
-
-             
             </div>
           ) : (
-            <img
-              src="/images/premium_pay_logo.png"
-              alt="Logo"
-              width={45}
-              height={45}
-            />
+            <img src="/images/logo.svg" alt="Logo" width={45} height={45} />
           )}
         </Link>
       </div>

@@ -24,6 +24,7 @@ import FillialsPage from "./pages/new/Fillials";
 import { ToastContainer } from "react-toastify";
 import AppsPage from "./pages/new/Apps";
 import StatisticsPage from "./pages/new/Statistics";
+import ShopsPage from "./pages/diametr/Shops";
 
 export default function App() {
   return (
@@ -32,15 +33,18 @@ export default function App() {
         <ScrollToTop />
         <Routes>
           {/* Dashboard Layout */}
-          <Route index path="/" element={<SignIn/>} />
-          <Route element={<AppLayout />}>
+          <Route element={<AppLayout />} >
              {/* People Page */}
-             <Route path="/merchants" element={<MerchantsPage />} />
-             <Route path="/fillials" element={<FillialsPage />} />
-             <Route path="/operators" element={< OperatorsPage />} />
-              <Route path="/apps" element={<AppsPage />} />
-               <Route path="/statistics" element={<StatisticsPage />} />
+               <Route path="/" element={<Home />} />
+             <Route path="/shops" element={<ShopsPage />} />
+              <Route path="/categories" element={<ShopsPage />} />
+                <Route path="/payments" element={<ShopsPage />} />
+                  <Route path="/products" element={<ShopsPage />} />
              
+              <Route path="/news" element={<ShopsPage />} />
+               <Route path="/services" element={<ShopsPage />} />
+                 <Route path="/workers" element={<ShopsPage />} />
+                 <Route path="/ads" element={<ShopsPage />} />
 
 
 

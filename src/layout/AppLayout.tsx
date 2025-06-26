@@ -30,12 +30,14 @@ const LayoutContent: React.FC = () => {
 
 const AppLayout: React.FC = () => {
   return (
-    <PrivateRoute>
-      {" "}
-      <SidebarProvider>
+    // <PrivateRoute>
+     
+     
+    // </PrivateRoute>
+
+     <SidebarProvider>
         <LayoutContent />
       </SidebarProvider>
-    </PrivateRoute>
   );
 };
 

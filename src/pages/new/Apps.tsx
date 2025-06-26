@@ -95,8 +95,8 @@ export default function AppsPage() {
   return (
     <>
       <PageMeta
-        title="Apps | PremiumPay Dashboard"
-        description="PremiumPay Dashboard"
+        title="Apps | Diametr Dashboard"
+        description="Diametr Dashboard"
       />
       <PageBreadcrumb pageTitle="Arizalar" />
 

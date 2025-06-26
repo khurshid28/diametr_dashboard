@@ -9,16 +9,19 @@ import Label from "../../components/form/Label";
 import Input from "../../components/form/input/InputField";
 import { Modal } from "../../components/ui/modal";
 import { useCallback, useState } from "react";
-import MerchantsTable from "../../components/tables/new/merchants";
+import ShopsTable, {
+  ShopItemProps,
+} from "../../components/tables/diametr/shopsTable";
 import FileInput from "../../components/form/input/FileInput";
+import Select from "../../components/form/Select";
 import axiosClient from "../../service/axios.service";
 import { useFetchWithLoader } from "../../hooks/useFetchWithLoader";
 import { LoadSpinner } from "../../components/spinner/load-spinner";
-export interface Merchant {
+export interface Shop {
   name?: string;
   image?: string;
 }
-export default function MerchantsPage() {
+export default function ShopsPage() {
   const { isOpen, openModal, closeModal } = useModal();
   const handleAdding = () => {
     // Handle save logic here
@@ -26,13 +29,52 @@ export default function MerchantsPage() {
     console.log("handleAdding...");
 
     closeModal();
-    setMerchant(emptyMerchant);
+    setShop(emptyShop);
   };
-  let emptyMerchant: Merchant = {
+  let emptyShop: Shop = {
     name: "",
     image: "",
   };
-  let [Merchant, setMerchant] = useState<Merchant>(emptyMerchant);
+
+  let [Shop, setShop] = useState<Shop>(emptyShop);
+
+  const region_options = [
+    { value: "Toshkent sh", label: "Toshkent sh" },
+    { value: "Andijon", label: "Andijon" },
+    { value: "Buxoro", label: "Buxoro" },
+    { value: "Farg'ona", label: "Farg'ona" },
+    { value: "Jizzax", label: "Jizzax" },
+    { value: "Samarqand", label: "Samarqand" },
+    { value: "Toshkent", label: "Toshkent" },
+  ];
+
+  const percent_type_options = [
+    { value: "OUT", label: "OUT" },
+    { value: "IN", label: "IN" },
+  ];
+
+  //    const fetchShops = useCallback(() => {
+  //     return axiosClient.get("/Shop/all").then((res) => res.data);
+  //   }, []);
+
+  //   const { data, isLoading, error, refetch } = useFetchWithLoader({
+  //     fetcher: fetchShops,
+  //   });
+
+  let data: ShopItemProps[] = [
+    {
+      id: 1,
+      name: "Reno Market",
+      region: "Toshkent",
+      image: "",
+      createdAt: new Date().toString(),
+      inn: "23044891",
+      director : {
+        fullname :"Ravshan",
+        phone : "+998950642827"
+      }
+    },
+  ];
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -40,13 +82,6 @@ export default function MerchantsPage() {
       console.log("Selected file:", file.name);
     }
   };
-  const fetchMerchants = useCallback(() => {
-    return axiosClient.get("/merchant/all").then((res) => res.data);
-  }, []);
-
-  const { data, isLoading, error, refetch } = useFetchWithLoader({
-    fetcher: fetchMerchants,
-  });
   return (
     <>
       <PageMeta
@@ -56,15 +91,15 @@ export default function MerchantsPage() {
       <PageBreadcrumb pageTitle="Shops" />
 
       <div className="space-y-6 ">
-        {isLoading && (
-          <div className="min-h-[450px]  flex-col flex justify-center">
-            <LoadSpinner />
-          </div>
-        )}
+        {/* {isLoading && (
+                 <div className="min-h-[450px]  flex-col flex justify-center">
+                   <LoadSpinner />
+                 </div>
+               )} */}
 
         {data && (
           <ComponentCard
-            title="Merchants Table"
+            title="Shops Table"
             action={
               <>
                 <Button
@@ -72,16 +107,16 @@ export default function MerchantsPage() {
                   variant="primary"
                   startIcon={<PlusIcon className="size-5 fill-white" />}
                   onClick={() => {
-                    setMerchant(emptyMerchant);
+                    setShop(emptyShop);
                     openModal();
                   }}
                 >
-                  Add Merchant
+                  Add Shop
                 </Button>
               </>
             }
           >
-            <MerchantsTable data={data} refetch={refetch} />
+            <ShopsTable data={data} />
           </ComponentCard>
         )}
       </div>
@@ -89,35 +124,59 @@ export default function MerchantsPage() {
         <div className="relative w-full p-4 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-              Add Merchant
+              Add Shop
             </h4>
             <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-              Create new Merchant with full details.
+              Create new Shop with full details.
             </p>
           </div>
           <form className="flex flex-col">
             <div className="px-2 overflow-y-auto custom-scrollbar">
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                 <div>
-                  <Label>Name</Label>
-                  <Input
-                    type="text"
-                    value={Merchant.name}
-                    onChange={(e) =>
-                      setMerchant({
-                        ...Merchant,
-                        name: e.target.value,
-                      })
-                    }
+                  <Label>Region</Label>
+                  <Select
+                    options={region_options}
+                    className="dark:bg-dark-900"
+                    onChange={() => {}}
                   />
                 </div>
 
                 <div>
-                  <Label>Image</Label>
-                  <FileInput
-                    onChange={handleFileChange}
-                    className="custom-class"
+                  <Label>Address</Label>
+                  <Input type="text" />
+                </div>
+
+                <div>
+                  <Label>Name</Label>
+                  <Input
+                    type="text"
+                    value={Shop.name}
+                    onChange={(e) => setShop(emptyShop)}
                   />
+                </div>
+
+                <div>
+                  <Label>MFO</Label>
+                  <Input type="text" onChange={(e) => {}} />
+                </div>
+                <div>
+                  <Label>INN</Label>
+                  <Input type="text" onChange={(e) => {}} />
+                </div>
+
+                <div>
+                  <Label>Hisob raqam</Label>
+                  <Input type="text" onChange={(e) => {}} />
+                </div>
+
+                <div>
+                  <Label>Director Name</Label>
+                  <Input type="text" onChange={(e) => {}} />
+                </div>
+                <div>
+                  <Label>Director Phone</Label>
+                  <Input type="text" onChange={(e) => {}} />
                 </div>
               </div>
             </div>
