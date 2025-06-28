@@ -20,6 +20,7 @@ import {
   EditIcon,
   EyeCloseIcon,
   EyeIcon,
+  PencilIcon,
   PlusIcon,
 } from "../../../icons";
 import { useEffect, useState } from "react";
@@ -358,7 +359,7 @@ export default function FillialsTable({
                       openModal();
                     }}
                   >
-                    <EditIcon></EditIcon>
+                    <PencilIcon></PencilIcon>
                   </Button>
 
                   <Button

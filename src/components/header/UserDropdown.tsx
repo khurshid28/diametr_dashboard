@@ -22,10 +22,10 @@ export default function UserDropdown() {
         className="flex items-center text-gray-700 dropdown-toggle dark:text-gray-400"
       >
         <span className="mr-3 overflow-hidden rounded-full h-11 w-11">
-                        <img  src={user.image ? import.meta.env.VITE_STATIC_PATH +  user.image : "/images/user.png"} alt="user" className="object-cover"/>
+                        <img  src={user?.image ? import.meta.env.VITE_STATIC_PATH +  user?.image : "/images/user.png"} alt="user" className="object-cover"/>
         </span>
 
-        <span className="block mr-1 font-medium text-theme-sm">Xurshid</span>
+        <span className="block mr-1 font-medium text-theme-sm">Sherzod</span>
         <svg
           className={`stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 ${
             isOpen ? "rotate-180" : ""

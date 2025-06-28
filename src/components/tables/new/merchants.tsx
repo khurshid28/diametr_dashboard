@@ -20,6 +20,7 @@ import {
   EditIcon,
   EyeCloseIcon,
   EyeIcon,
+  PencilIcon,
   PlusIcon,
 } from "../../../icons";
 import { useEffect, useState } from "react";
@@ -259,7 +260,7 @@ export default function MerchantsTable({ data,  refetch }: {
                       openModal();
                     }}
                   >
-                    <EditIcon></EditIcon>
+                    <PencilIcon></PencilIcon>
                   </Button>
 
                   <Button

@@ -9,19 +9,20 @@ import Label from "../../components/form/Label";
 import Input from "../../components/form/input/InputField";
 import { Modal } from "../../components/ui/modal";
 import { useCallback, useState } from "react";
-import ShopsTable, {
-  ShopItemProps,
-} from "../../components/tables/diametr/shopsTable";
+
 import FileInput from "../../components/form/input/FileInput";
 import Select from "../../components/form/Select";
 import axiosClient from "../../service/axios.service";
 import { useFetchWithLoader } from "../../hooks/useFetchWithLoader";
 import { LoadSpinner } from "../../components/spinner/load-spinner";
-export interface Shop {
+import CategorysTable, {
+  CategoryItemProps,
+} from "../../components/tables/diametr/categoriesTable";
+export interface Category {
   name?: string;
   image?: string;
 }
-export default function ShopsPage() {
+export default function CategorysPage() {
   const { isOpen, openModal, closeModal } = useModal();
   const handleAdding = () => {
     // Handle save logic here
@@ -29,14 +30,14 @@ export default function ShopsPage() {
     console.log("handleAdding...");
 
     closeModal();
-    setShop(emptyShop);
+    setCategory(emptyCategory);
   };
-  let emptyShop: Shop = {
+  let emptyCategory: Category = {
     name: "",
     image: "",
   };
 
-  let [Shop, setShop] = useState<Shop>(emptyShop);
+  let [Category, setCategory] = useState<Category>(emptyCategory);
 
   const region_options = [
     { value: "Toshkent sh", label: "Toshkent sh" },
@@ -53,26 +54,42 @@ export default function ShopsPage() {
     { value: "IN", label: "IN" },
   ];
 
-  //    const fetchShops = useCallback(() => {
-  //     return axiosClient.get("/Shop/all").then((res) => res.data);
+  //    const fetchCategorys = useCallback(() => {
+  //     return axiosClient.get("/Category/all").then((res) => res.data);
   //   }, []);
 
   //   const { data, isLoading, error, refetch } = useFetchWithLoader({
-  //     fetcher: fetchShops,
+  //     fetcher: fetchCategorys,
   //   });
 
-  let data: ShopItemProps[] = [
+  let data: CategoryItemProps[] = [
+    {
+      id: 4,
+      name: "Kabel",
+      image: "/images/cards/card-02.png",
+      product_count: 12,
+      createdAt: new Date().toString(),
+    },
+    {
+      id: 3,
+      name: "Bo'yoq",
+       image: "/images/cards/card-03.jpg",
+      product_count: 5,
+      createdAt: new Date().toString(),
+    },
+    {
+      id: 2,
+      name: "Ichimlik",
+        image: "/images/cards/card-02.png",
+      product_count: 40,
+      createdAt: new Date().toString(),
+    },
     {
       id: 1,
-      name: "Reno Market",
-      region: "Toshkent",
-      image: "",
+      name: "Gilam",
+        image: "/images/cards/card-02.png",
+      product_count: 4,
       createdAt: new Date().toString(),
-      inn: "23044891",
-      director : {
-        fullname :"Ravshan",
-        phone : "+998950642827"
-      }
     },
   ];
 
@@ -85,10 +102,10 @@ export default function ShopsPage() {
   return (
     <>
       <PageMeta
-        title="Shops | Diametr Dashboard"
+        title="Categorys | Diametr Dashboard"
         description="Diametr Dashboard"
       />
-      <PageBreadcrumb pageTitle="Shops" />
+      <PageBreadcrumb pageTitle="Categorys" />
 
       <div className="space-y-6 ">
         {/* {isLoading && (
@@ -99,7 +116,7 @@ export default function ShopsPage() {
 
         {data && (
           <ComponentCard
-            title="Shops Table"
+            title="Categorys Table"
             action={
               <>
                 <Button
@@ -107,16 +124,16 @@ export default function ShopsPage() {
                   variant="primary"
                   startIcon={<PlusIcon className="size-5 fill-white" />}
                   onClick={() => {
-                    setShop(emptyShop);
+                    setCategory(emptyCategory);
                     openModal();
                   }}
                 >
-                  Add Shop
+                  Add Category
                 </Button>
               </>
             }
           >
-            <ShopsTable data={data} />
+            <CategorysTable data={data} />
           </ComponentCard>
         )}
       </div>
@@ -124,59 +141,29 @@ export default function ShopsPage() {
         <div className="relative w-full p-4 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-              Add Shop
+              Add Category
             </h4>
             <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-              Create new Shop with full details.
+              Create new Category with full details.
             </p>
           </div>
           <form className="flex flex-col">
             <div className="px-2 overflow-y-auto custom-scrollbar">
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                 <div>
-                  <Label>Region</Label>
-                  <Select
-                    options={region_options}
-                    className="dark:bg-dark-900"
-                    onChange={() => {}}
-                  />
-                </div>
-
-                <div>
-                  <Label>Address</Label>
-                  <Input type="text" />
-                </div>
-
-                <div>
                   <Label>Name</Label>
                   <Input
                     type="text"
-                    value={Shop.name}
-                    onChange={(e) => setShop(emptyShop)}
+                    value={Category.name}
+                    onChange={(e) => setCategory(emptyCategory)}
                   />
                 </div>
-
                 <div>
-                  <Label>MFO</Label>
-                  <Input type="text" onChange={(e) => {}} />
-                </div>
-                <div>
-                  <Label>INN</Label>
-                  <Input type="text" onChange={(e) => {}} />
-                </div>
-
-                <div>
-                  <Label>Hisob raqam</Label>
-                  <Input type="text" onChange={(e) => {}} />
-                </div>
-
-                <div>
-                  <Label>Director Name</Label>
-                  <Input type="text" onChange={(e) => {}} />
-                </div>
-                <div>
-                  <Label>Director Phone</Label>
-                  <Input type="text" onChange={(e) => {}} />
+                  <Label>Image</Label>
+                  <FileInput
+                    onChange={handleFileChange}
+                    className="custom-class"
+                  />
                 </div>
               </div>
             </div>

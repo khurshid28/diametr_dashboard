@@ -25,6 +25,15 @@ import { ToastContainer } from "react-toastify";
 import AppsPage from "./pages/new/Apps";
 import StatisticsPage from "./pages/new/Statistics";
 import ShopsPage from "./pages/diametr/Shops";
+import RegionsPage from "./pages/diametr/Regions";
+import PaymentsPage from "./pages/diametr/Payments";
+import SalesPage from "./pages/diametr/Sales";
+import CategorysPage from "./pages/diametr/Categories";
+import ServicesPage from "./pages/diametr/Services";
+import NewsPage from "./pages/diametr/News";
+import AdsPage from "./pages/diametr/Ads";
+import WorkersPage from "./pages/diametr/Workers";
+import ProductsPage from "./pages/diametr/Products";
 
 export default function App() {
   return (
@@ -33,20 +42,24 @@ export default function App() {
         <ScrollToTop />
         <Routes>
           {/* Dashboard Layout */}
-          <Route element={<AppLayout />} >
-             {/* People Page */}
-               <Route path="/" element={<Home />} />
-             <Route path="/shops" element={<ShopsPage />} />
-              <Route path="/categories" element={<ShopsPage />} />
-                <Route path="/payments" element={<ShopsPage />} />
-                  <Route path="/products" element={<ShopsPage />} />
-             
-              <Route path="/news" element={<ShopsPage />} />
-               <Route path="/services" element={<ShopsPage />} />
-                 <Route path="/workers" element={<ShopsPage />} />
-                 <Route path="/ads" element={<ShopsPage />} />
+          <Route element={<AppLayout />}>
+            {/* People Page */}
+            <Route path="/" element={<Home />} />
+            <Route path="/shops" element={<ShopsPage />} />
+            <Route path="/categories" element={<CategorysPage />} />
+            <Route path="/products" element={<ProductsPage />} />
 
+             <Route path="/payments" element={<PaymentsPage />} />
 
+            <Route path="/news" element={<NewsPage />} />
+            <Route path="/ads" element={<AdsPage />} />
+            
+            <Route path="/services" element={<ServicesPage />} />
+            <Route path="/workers" element={<WorkersPage />} />
+            
+
+            <Route path="/regions" element={<RegionsPage />} />
+            <Route path="/sales" element={<SalesPage />} />
 
             {/* People Page */}
             {/* <Route path="/subjects" element={<SubjectsPage />} />
@@ -55,8 +68,6 @@ export default function App() {
             <Route path="/tests" element={<TestsPage />} />
 
             <Route path="/results" element={<ResultsPage />} /> */}
-
-
 
             {/* <Route index path="/rate" element={<RatePage />} /> */}
 
@@ -93,8 +104,11 @@ export default function App() {
         </Routes>
       </Router>
 
-        <ToastContainer position="bottom-right"  autoClose={2000}
-  hideProgressBar={false}/>
+      <ToastContainer
+        position="bottom-right"
+        autoClose={2000}
+        hideProgressBar={false}
+      />
     </>
   );
 }

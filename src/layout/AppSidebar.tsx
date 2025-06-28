@@ -41,6 +41,8 @@ import {
   WorkerIcon,
   AdIcon,
   CardIcon,
+  LocationsIcon,
+  SaleIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 import SidebarWidget from "./SidebarWidget";
@@ -111,6 +113,17 @@ const navItems: NavItem[] = [
     icon: <WorkerIcon />,
     name: "Workers",
     path: "/workers",
+  },
+    {
+    icon: <LocationsIcon />,
+    name: "Regions",
+    path: "/regions",
+  },
+
+   {
+    icon: <SaleIcon />,
+    name: "Sales",
+    path: "/sales",
   },
 ];
 

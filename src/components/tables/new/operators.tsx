@@ -20,6 +20,7 @@ import {
   EditIcon,
   EyeCloseIcon,
   EyeIcon,
+  PencilIcon,
   PlusIcon,
 } from "../../../icons";
 import { useEffect, useState } from "react";
@@ -85,7 +86,7 @@ export interface OperatorItemProps {
 //     id: 1,
 //     user: {
 //       image: "/images/user/user-17.jpg",
-//       name: "Xurshid Ismoilov",
+//       name: "Sherzod Mahkamov",
 //       phone: "+998(95)064-28-27",
 //       password: "11223344",
 //     },
@@ -592,7 +593,7 @@ export default function OperatorsTable({ data,  refetch }: {
                       openModal();
                     }}
                   >
-                    <EditIcon></EditIcon>
+                    <PencilIcon></PencilIcon>
                   </Button>
 
                   <Button

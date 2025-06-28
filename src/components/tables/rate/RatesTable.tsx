@@ -31,7 +31,7 @@ const statictableData: Order[] = [
     id: 1,
     user: {
       image: "/images/user/user-17.jpg",
-      name: "Xurshid Ismoilov",
+      name: "Sherzod Mahkamov",
       phone: "+998(95)064-28-27",
     },
     group: "Group 1",

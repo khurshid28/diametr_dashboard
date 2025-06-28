@@ -75,14 +75,21 @@ import { ReactComponent as CardIcon } from "./card.svg?react";
 
 import { ReactComponent as MoneyIcon } from "./money.svg?react";
 import { ReactComponent as DeliveryIcon } from "./delivery.svg?react";
+import { ReactComponent as LocationsIcon } from "./locations.svg?react";
+import { ReactComponent as RegionIcon } from "./region.svg?react";
+import { ReactComponent as SaleIcon } from "./sale.svg?react";
+import { ReactComponent as CashMoneyIcon } from "./cash_money.svg?react";
 
 export {
   ShopIcon,
   CategoryIcon,
   NewsIcon,
   WorkerIcon,
+  LocationsIcon,
+  SaleIcon,
+  CashMoneyIcon,
   CardIcon,
-  DeliveryIcon,
+  DeliveryIcon,RegionIcon,
   MoneyIcon,
   AdIcon,
   ServiceIcon,

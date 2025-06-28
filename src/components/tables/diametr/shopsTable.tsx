@@ -20,6 +20,7 @@ import {
   EditIcon,
   EyeCloseIcon,
   EyeIcon,
+  PencilIcon,
   PlusIcon,
 } from "../../../icons";
 import { useEffect, useState } from "react";
@@ -315,7 +316,9 @@ export default function ShopsTable({
                       </span>
                     </div>
                 </TableCell>
-
+  <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                  {Moment(order.createdAt).format("HH:mm - MMMM DD, yyyy")}
+                </TableCell>
 
                 
 
@@ -351,7 +354,7 @@ export default function ShopsTable({
                       openModal();
                     }}
                   >
-                    <EditIcon></EditIcon>
+                    <PencilIcon></PencilIcon>
                   </Button>
 
                   <Button
