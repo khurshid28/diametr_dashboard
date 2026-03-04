@@ -8,96 +8,77 @@ import { useModal } from "../../hooks/useModal";
 import Label from "../../components/form/Label";
 import Input from "../../components/form/input/InputField";
 import { Modal } from "../../components/ui/modal";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import FileInput from "../../components/form/input/FileInput";
-import Select from "../../components/form/Select";
 import axiosClient from "../../service/axios.service";
 import { useFetchWithLoader } from "../../hooks/useFetchWithLoader";
 import { LoadSpinner } from "../../components/spinner/load-spinner";
+import { usePolling } from "../../hooks/usePolling";
 import CategorysTable, {
   CategoryItemProps,
 } from "../../components/tables/diametr/categoriesTable";
 export interface Category {
   name?: string;
+  name_uz?: string;
+  name_ru?: string;
   image?: string;
 }
 export default function CategorysPage() {
   const { isOpen, openModal, closeModal } = useModal();
-  const handleAdding = () => {
-    // Handle save logic here
 
-    console.log("handleAdding...");
-
-    closeModal();
-    setCategory(emptyCategory);
-  };
   let emptyCategory: Category = {
     name: "",
+    name_uz: "",
+    name_ru: "",
     image: "",
   };
 
+  const fetchCategories = useCallback(
+    () => axiosClient.get("/category/all").then((res) => res.data),
+    []
+  );
+  const { data, isLoading, refetch } = useFetchWithLoader<CategoryItemProps[]>({
+    fetcher: fetchCategories,
+  });
+  usePolling(refetch, 10_000);
+
+  const categoryData: CategoryItemProps[] = Array.isArray(data) ? data : [];
+
   let [Category, setCategory] = useState<Category>(emptyCategory);
+  const fileRef = useRef<File | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  const region_options = [
-    { value: "Toshkent sh", label: "Toshkent sh" },
-    { value: "Andijon", label: "Andijon" },
-    { value: "Buxoro", label: "Buxoro" },
-    { value: "Farg'ona", label: "Farg'ona" },
-    { value: "Jizzax", label: "Jizzax" },
-    { value: "Samarqand", label: "Samarqand" },
-    { value: "Toshkent", label: "Toshkent" },
-  ];
-
-  const percent_type_options = [
-    { value: "OUT", label: "OUT" },
-    { value: "IN", label: "IN" },
-  ];
-
-  //    const fetchCategorys = useCallback(() => {
-  //     return axiosClient.get("/Category/all").then((res) => res.data);
-  //   }, []);
-
-  //   const { data, isLoading, error, refetch } = useFetchWithLoader({
-  //     fetcher: fetchCategorys,
-  //   });
-
-  let data: CategoryItemProps[] = [
-    {
-      id: 4,
-      name: "Kabel",
-      image: "/images/cards/card-02.png",
-      product_count: 12,
-      createdAt: new Date().toString(),
-    },
-    {
-      id: 3,
-      name: "Bo'yoq",
-       image: "/images/cards/card-03.jpg",
-      product_count: 5,
-      createdAt: new Date().toString(),
-    },
-    {
-      id: 2,
-      name: "Ichimlik",
-        image: "/images/cards/card-02.png",
-      product_count: 40,
-      createdAt: new Date().toString(),
-    },
-    {
-      id: 1,
-      name: "Gilam",
-        image: "/images/cards/card-02.png",
-      product_count: 4,
-      createdAt: new Date().toString(),
-    },
-  ];
+  const handleAdding = async () => {
+    setSaving(true);
+    try {
+      let imageFilename = Category.image ?? "";
+      if (fileRef.current) {
+        const fd = new FormData();
+        fd.append("image", fileRef.current);
+        const res = await axiosClient.post("/category/upload-image", fd, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        imageFilename = res.data?.data?.image ?? res.data?.image ?? "";
+      }
+      await axiosClient.post("/category", {
+        name_uz: Category.name_uz,
+        name_ru: Category.name_ru,
+        image: imageFilename,
+      });
+      refetch();
+      closeModal();
+      setCategory(emptyCategory);
+      fileRef.current = null;
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      console.log("Selected file:", file.name);
-    }
+    fileRef.current = event.target.files?.[0] ?? null;
   };
   return (
     <>
@@ -108,13 +89,12 @@ export default function CategorysPage() {
       <PageBreadcrumb pageTitle="Categorys" />
 
       <div className="space-y-6 ">
-        {/* {isLoading && (
-                 <div className="min-h-[450px]  flex-col flex justify-center">
-                   <LoadSpinner />
-                 </div>
-               )} */}
-
-        {data && (
+        {isLoading && (
+          <div className="min-h-[450px] flex-col flex justify-center">
+            <LoadSpinner />
+          </div>
+        )}
+        {!isLoading && categoryData && (
           <ComponentCard
             title="Categorys Table"
             action={
@@ -133,7 +113,7 @@ export default function CategorysPage() {
               </>
             }
           >
-            <CategorysTable data={data} />
+            <CategorysTable data={categoryData} />
           </ComponentCard>
         )}
       </div>
@@ -151,11 +131,25 @@ export default function CategorysPage() {
             <div className="px-2 overflow-y-auto custom-scrollbar">
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                 <div>
-                  <Label>Name</Label>
+                  <Label>Nomi (O'zbek)</Label>
                   <Input
                     type="text"
-                    value={Category.name}
-                    onChange={(e) => setCategory(emptyCategory)}
+                    placeholder="Uzbekcha nomini kiriting"
+                    value={Category.name_uz}
+                    onChange={(e) =>
+                      setCategory({ ...Category, name_uz: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label>Название (Русский)</Label>
+                  <Input
+                    type="text"
+                    placeholder="Введите название на русском"
+                    value={Category.name_ru}
+                    onChange={(e) =>
+                      setCategory({ ...Category, name_ru: e.target.value })
+                    }
                   />
                 </div>
                 <div>
@@ -171,8 +165,8 @@ export default function CategorysPage() {
               <Button size="sm" variant="outline" onClick={closeModal}>
                 Close
               </Button>
-              <Button size="sm" onClick={handleAdding}>
-                Saves
+              <Button size="sm" onClick={handleAdding} disabled={saving}>
+                {saving ? "Saving..." : "Save"}
               </Button>
             </div>
           </form>

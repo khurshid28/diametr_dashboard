@@ -18,9 +18,12 @@ import { LoadSpinner } from "../../components/spinner/load-spinner";
 import ProductsTable, {
   ProductItemProps,
 } from "../../components/tables/diametr/productsTable";
+import { usePolling } from "../../hooks/usePolling";
 
 export interface Product {
   name?: string;
+  name_uz?: string;
+  name_ru?: string;
   image?: string;
 }
 export default function ProductsPage() {
@@ -35,6 +38,8 @@ export default function ProductsPage() {
   };
   let emptyProduct: Product = {
     name: "",
+    name_uz: "",
+    name_ru: "",
     image: "",
   };
 
@@ -63,22 +68,16 @@ export default function ProductsPage() {
   //     fetcher: fetchProducts,
   //   });
 
-  let data: ProductItemProps[] = [
-    {
-      id: 4,
-      name: "Kabel 25L",
-      image: "/images/cards/card-02.png",
-      category: "Kabel",
-      createdAt: new Date().toString(),
-    },
-    {
-      id: 3,
-      name: "Kabel 134M",
-      image: "/images/cards/card-03.jpg",
-      category: "Kabel",
-      createdAt: new Date().toString(),
-    },
-  ];
+  const fetchProducts = useCallback(
+    () => axiosClient.get("/product/all").then((res) => res.data),
+    []
+  );
+  const { data, isLoading, refetch } = useFetchWithLoader<ProductItemProps[]>({
+    fetcher: fetchProducts,
+  });
+  usePolling(refetch, 10_000);
+
+  const productData: ProductItemProps[] = Array.isArray(data) ? data : [];
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -102,13 +101,12 @@ export default function ProductsPage() {
       <PageBreadcrumb pageTitle="Products" />
 
       <div className="space-y-6 ">
-        {/* {isLoading && (
-                 <div className="min-h-[450px]  flex-col flex justify-center">
-                   <LoadSpinner />
-                 </div>
-               )} */}
-
-        {data && (
+        {isLoading && (
+          <div className="min-h-[450px] flex-col flex justify-center">
+            <LoadSpinner />
+          </div>
+        )}
+        {!isLoading && productData && (
           <ComponentCard
             title="Products Table"
             action={
@@ -127,7 +125,7 @@ export default function ProductsPage() {
               </>
             }
           >
-            <ProductsTable data={data} />
+            <ProductsTable data={productData} />
           </ComponentCard>
         )}
       </div>
@@ -145,11 +143,25 @@ export default function ProductsPage() {
             <div className="px-2 overflow-y-auto custom-scrollbar">
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                 <div>
-                  <Label>Name</Label>
+                  <Label>Nomi (O'zbek)</Label>
                   <Input
                     type="text"
-                    value={Product.name}
-                    onChange={(e) => setProduct(emptyProduct)}
+                    placeholder="Uzbekcha nomini kiriting"
+                    value={Product.name_uz}
+                    onChange={(e) =>
+                      setProduct({ ...Product, name_uz: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label>Название (Русский)</Label>
+                  <Input
+                    type="text"
+                    placeholder="Введите название на русском"
+                    value={Product.name_ru}
+                    onChange={(e) =>
+                      setProduct({ ...Product, name_ru: e.target.value })
+                    }
                   />
                 </div>
 

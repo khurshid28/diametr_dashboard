@@ -39,6 +39,8 @@ import FileInput from "../../form/input/FileInput";
 export interface CategoryItemProps {
   id: number;
   name: string;
+  name_uz?: string;
+  name_ru?: string;
   image: string;
   createdAt: string;
   product_count: number;
@@ -115,6 +117,8 @@ export default function CategorysTable({
   };
   let emptyCategory: Category = {
     name: "",
+    name_uz: "",
+    name_ru: "",
     image: "",
   };
   let [Category, setCategory] = useState<Category>(emptyCategory);
@@ -280,8 +284,13 @@ export default function CategorysTable({
                     </div>
                     <div>
                       <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
-                        {order.name}
+                        {order.name_uz || order.name}
                       </span>
+                      {order.name_ru && (
+                        <span className="block text-gray-400 text-xs mt-0.5">
+                          {order.name_ru}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </TableCell>
@@ -315,6 +324,8 @@ export default function CategorysTable({
                     onClick={() => {
                       setCategory({
                         name: order.name,
+                        name_uz: order.name_uz || "",
+                        name_ru: order.name_ru || "",
                         image: "",
                       });
                       openModal();
@@ -394,18 +405,25 @@ export default function CategorysTable({
           <form className="flex flex-col">
             <div className="px-2 overflow-y-auto custom-scrollbar">
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-                
-
                 <div>
-                  <Label>Name</Label>
+                  <Label>Nomi (O'zbek) 🇺🇿</Label>
                   <Input
                     type="text"
-                    value={Category.name}
+                    placeholder="Uzbekcha nomini kiriting"
+                    value={Category.name_uz}
                     onChange={(e) =>
-                      setCategory({
-                        ...Category,
-                        name: e.target.value,
-                      })
+                      setCategory({ ...Category, name_uz: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label>Название (Русский) 🇷🇺</Label>
+                  <Input
+                    type="text"
+                    placeholder="Введите название на русском"
+                    value={Category.name_ru}
+                    onChange={(e) =>
+                      setCategory({ ...Category, name_ru: e.target.value })
                     }
                   />
                 </div>
@@ -417,15 +435,6 @@ export default function CategorysTable({
                     className="custom-class"
                   />
                 </div>
-
-                {/* 
-                <div>
-                  <Label>Image</Label>
-                  <FileInput
-                    onChange={handleFileChange}
-                    className="custom-class"
-                  />
-                </div> */}
               </div>
             </div>
             <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">

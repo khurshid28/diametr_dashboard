@@ -18,6 +18,7 @@ import { LoadSpinner } from "../../components/spinner/load-spinner";
 import PaymentsTable, {
   PaymentItemProps,
 } from "../../components/tables/diametr/paymentsTable";
+import { usePolling } from "../../hooks/usePolling";
 export interface Payment {
   name?: string;
   image?: string;
@@ -62,61 +63,16 @@ export default function PaymentsPage() {
   //     fetcher: fetchPayments,
   //   });
 
-  let data: PaymentItemProps[] = [
-    {
-      id: 6,
-      type: "Card",
-      createdAt: new Date().toString(),
-      price: 450000,
-      shop: "Anor market",
-      subject: "Payment",
-    },
-    {
-      id: 5,
-      type: "Naxd",
-      createdAt: new Date().toString(),
-      price: 1200000,
-      shop: "Texno park mchj",
-      subject: "Payment",
-    },
+  const fetchPayments = useCallback(
+    () => axiosClient.get("/payment/all").then((res) => res.data),
+    []
+  );
+  const { data, isLoading, refetch } = useFetchWithLoader<PaymentItemProps[]>({
+    fetcher: fetchPayments,
+  });
+  usePolling(refetch, 10_000);
 
-    {
-      id: 4,
-      type: "provider",
-      provider_name: "click",
-      createdAt: new Date().toString(),
-      price: 215000,
-      shop: "TexnoMarket",
-      subject: "Ad",
-    },
-    {
-      id: 3,
-      type: "provider",
-      provider_name: "uzum",
-      createdAt: new Date().toString(),
-      price: 700000,
-      shop: "TexnoMarket",
-      subject: "Payment",
-    },
-    {
-      id: 2,
-      type: "provider",
-      provider_name: "payme",
-      createdAt: new Date().toString(),
-      price: 350000,
-      shop: "TexnoMarket",
-      subject: "Ad",
-    },
-    {
-      id: 1,
-      type: "provider",
-      provider_name: "payme",
-      createdAt: new Date().toString(),
-      price: 1200000,
-      shop: "TexnoMarket",
-      subject: "Payment",
-    },
-  ];
+  const paymentData: PaymentItemProps[] = Array.isArray(data) ? data : [];
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -150,13 +106,12 @@ export default function PaymentsPage() {
       <PageBreadcrumb pageTitle="Payments" />
 
       <div className="space-y-6 ">
-        {/* {isLoading && (
-                 <div className="min-h-[450px]  flex-col flex justify-center">
-                   <LoadSpinner />
-                 </div>
-               )} */}
-
-        {data && (
+        {isLoading && (
+          <div className="min-h-[450px] flex-col flex justify-center">
+            <LoadSpinner />
+          </div>
+        )}
+        {!isLoading && paymentData && (
           <ComponentCard
             title="Payments Table"
             action={
@@ -175,7 +130,7 @@ export default function PaymentsPage() {
               </>
             }
           >
-            <PaymentsTable data={data} />
+            <PaymentsTable data={paymentData} />
           </ComponentCard>
         )}
       </div>

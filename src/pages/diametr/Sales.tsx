@@ -17,6 +17,7 @@ import Select from "../../components/form/Select";
 import axiosClient from "../../service/axios.service";
 import { useFetchWithLoader } from "../../hooks/useFetchWithLoader";
 import { LoadSpinner } from "../../components/spinner/load-spinner";
+import { usePolling } from "../../hooks/usePolling";
 export interface Sale {
   name?: string;
   image?: string;
@@ -61,58 +62,16 @@ export default function SalesPage() {
   //     fetcher: fetchSales,
   //   });
 
-  let data: SaleItemProps[] = [
-    {
-      id: 2,
-      shop: "Sherzod Market",
-      createdAt: new Date().toString(),
-      total : 120000,
-      products :[
-        {
-            name : "Bo'yoq 1l",
-            price : 60000,
-            count : 2,
-            product : {
-                id  :4,
-                name : "Bo'yoq"
-            }
-        },
-       
-      ],
-    
-    },
-    {
-      id: 1,
-      shop: "Reno Market",
-      createdAt: new Date().toString(),
-      total : 57000,
-      products :[
-        {
-            name : "CocaCola 1.5l",
-            price : 15000,
-            count : 3,
-            product : {
-                id  :2,
-                name : "CocaCola"
-            }
-        },
-        {
-            name : "Flesh 0.7l",
-            price : 12000,
-            count : 1,
-            product : {
-                id  :1,
-                name : "Flesh"
-            }
-        }
-      ],
-      delivery: {
-        provider :"Yandex",
-        amount : 15000,
-        phone : "+998990023918"
-      }
-    },
-  ];
+  const fetchOrders = useCallback(
+    () => axiosClient.get("/order/all").then((res) => res.data),
+    []
+  );
+  const { data, isLoading, refetch } = useFetchWithLoader<SaleItemProps[]>({
+    fetcher: fetchOrders,
+  });
+  usePolling(refetch, 10_000);
+
+  const saleData: SaleItemProps[] = Array.isArray(data) ? data : [];
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -129,18 +88,16 @@ export default function SalesPage() {
       <PageBreadcrumb pageTitle="Sales" />
 
       <div className="space-y-6 ">
-        {/* {isLoading && (
-                 <div className="min-h-[450px]  flex-col flex justify-center">
-                   <LoadSpinner />
-                 </div>
-               )} */}
-
-        {data && (
+        {isLoading && (
+          <div className="min-h-[450px] flex-col flex justify-center">
+            <LoadSpinner />
+          </div>
+        )}
+        {!isLoading && saleData && (
           <ComponentCard
             title="Sales Table"
-           
           >
-            <SalesTable data={data} />
+            <SalesTable data={saleData} />
           </ComponentCard>
         )}
       </div>

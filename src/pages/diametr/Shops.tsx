@@ -17,6 +17,7 @@ import Select from "../../components/form/Select";
 import axiosClient from "../../service/axios.service";
 import { useFetchWithLoader } from "../../hooks/useFetchWithLoader";
 import { LoadSpinner } from "../../components/spinner/load-spinner";
+import { usePolling } from "../../hooks/usePolling";
 export interface Shop {
   name?: string;
   image?: string;
@@ -61,20 +62,17 @@ export default function ShopsPage() {
   //     fetcher: fetchShops,
   //   });
 
-  let data: ShopItemProps[] = [
-    {
-      id: 1,
-      name: "Reno Market",
-      region: "Toshkent",
-      image: "",
-      createdAt: new Date().toString(),
-      inn: "23044891",
-      director : {
-        fullname :"Ravshan",
-        phone : "+998950642827"
-      }
-    },
-  ];
+  const fetchShops = useCallback(
+    () => axiosClient.get("/shop/all").then((res) => res.data),
+    []
+  );
+  const { data, isLoading, refetch } = useFetchWithLoader<ShopItemProps[]>({
+    fetcher: fetchShops,
+  });
+  usePolling(refetch, 10_000);
+
+  // fallback to empty so table always renders
+  const shopData: ShopItemProps[] = Array.isArray(data) ? data : [];
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -96,8 +94,12 @@ export default function ShopsPage() {
                    <LoadSpinner />
                  </div>
                )} */}
-
-        {data && (
+        {isLoading && (
+          <div className="min-h-[450px] flex-col flex justify-center">
+            <LoadSpinner />
+          </div>
+        )}
+        {!isLoading && shopData && (
           <ComponentCard
             title="Shops Table"
             action={
@@ -116,7 +118,7 @@ export default function ShopsPage() {
               </>
             }
           >
-            <ShopsTable data={data} />
+            <ShopsTable data={shopData} />
           </ComponentCard>
         )}
       </div>
