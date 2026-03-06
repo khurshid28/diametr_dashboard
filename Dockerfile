@@ -10,6 +10,12 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Build-time env vars (override via --build-arg if needed)
+ARG VITE_BASE_URL=https://api.diametr.uz/api/v1
+ARG VITE_STATIC_PATH=https://api.diametr.uz
+ENV VITE_BASE_URL=$VITE_BASE_URL
+ENV VITE_STATIC_PATH=$VITE_STATIC_PATH
+
 COPY package*.json ./
 RUN npm ci --legacy-peer-deps --ignore-scripts
 
