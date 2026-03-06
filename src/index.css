@@ -41,18 +41,18 @@ layer(base);
   --color-white: #ffffff;
   --color-black: #101828;
 
-  --color-brand-25: #f2f7ff;
-  --color-brand-50: #ecf3ff;
-  --color-brand-100: #dde9ff;
-  --color-brand-200: #c2d6ff;
-  --color-brand-300: #9cb9ff;
-  --color-brand-400: #7592ff;
-  --color-brand-500: #465fff;
-  --color-brand-600: #3641f5;
-  --color-brand-700: #2a31d8;
-  --color-brand-800: #252dae;
-  --color-brand-900: #262e89;
-  --color-brand-950: #161950;
+  --color-brand-25: #f0fdf7;
+  --color-brand-50: #dcfbee;
+  --color-brand-100: #bbf7de;
+  --color-brand-200: #86efca;
+  --color-brand-300: #4ddfb0;
+  --color-brand-400: #26c993;
+  --color-brand-500: #00C48C;
+  --color-brand-600: #00a876;
+  --color-brand-700: #008a61;
+  --color-brand-800: #006f4e;
+  --color-brand-900: #005a3e;
+  --color-brand-950: #003426;
 
   --color-blue-light-25: #f5fbff;
   --color-blue-light-50: #f0f9ff;
@@ -775,4 +775,96 @@ span.flatpickr-weekday,
 
 .simplebar-scrollbar.simplebar-visible:before {
   @apply opacity-100;
+}
+
+/* ── Form field dark-mode overrides ────────────────────────────────────── */
+/*  Tailwind v4 custom-variant can lose to bg-white specificity.             */
+/*  .dark + element-type selector beats any single-class utility.            */
+
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+.dark select,
+.dark textarea {
+  background-color: #1e293b !important;
+  border-color: #374556 !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.dark input:not([type="checkbox"]):not([type="radio"]):focus,
+.dark select:focus,
+.dark textarea:focus {
+  border-color: var(--color-brand-600) !important;
+  box-shadow: 0 0 0 3px rgba(0, 196, 140, 0.15) !important;
+  outline: none !important;
+}
+
+.dark input[disabled],
+.dark select[disabled],
+.dark textarea[disabled] {
+  background-color: #131e2b !important;
+  border-color: #2a3848 !important;
+  color: rgba(255, 255, 255, 0.3) !important;
+  cursor: not-allowed !important;
+}
+
+/* ── Splash Screen Animations ── */
+@keyframes splashConicSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes splashShimmer {
+  0%   { transform: translateX(-180%) skewX(-18deg); opacity: 0; }
+  5%   { opacity: 1; }
+  35%  { transform: translateX(280%) skewX(-18deg); opacity: 0; }
+  100% { transform: translateX(280%) skewX(-18deg); opacity: 0; }
+}
+@keyframes splashScanLine {
+  0%   { top: -4px;  opacity: 0; }
+  8%   { opacity: 1; }
+  88%  { opacity: 0.85; }
+  100% { top: 115%;  opacity: 0; }
+}
+@keyframes splashLogoGlow {
+  0%, 100% { box-shadow: 0 0 20px 4px rgba(0,196,140,0.15), 0 24px 60px rgba(0,0,0,0.5); }
+  50%       { box-shadow: 0 0 52px 16px rgba(0,196,140,0.45), 0 24px 60px rgba(0,0,0,0.5); }
+}
+@keyframes splashLetterIn {
+  0%   { opacity: 0; transform: translateY(18px) scale(0.75); filter: blur(6px); }
+  100% { opacity: 1; transform: translateY(0)    scale(1);    filter: blur(0px); }
+}
+@keyframes splashBarShimmer {
+  0%   { transform: translateX(-200%); }
+  100% { transform: translateX(500%); }
+}
+@keyframes splashLogoIn {
+  0%   { opacity: 0; transform: scale(0.5) translateY(28px) rotate(-8deg); }
+  55%  { opacity: 1; transform: scale(1.07) translateY(-7px) rotate(1.5deg); }
+  75%  { transform: scale(0.96) translateY(3px) rotate(-0.5deg); }
+  100% { opacity: 1; transform: scale(1) translateY(0) rotate(0deg); }
+}
+@keyframes splashSubIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes splashRingPulse {
+  0%   { transform: translate(-50%,-50%) scale(1);    opacity: 0.55; }
+  100% { transform: translate(-50%,-50%) scale(1.75); opacity: 0; }
+}
+@keyframes splashParticle {
+  0%   { opacity: 0; transform: translateY(0)    scale(0);   }
+  15%  { opacity: 1; transform: translateY(-8px)  scale(1);   }
+  75%  { opacity: 0.7; }
+  100% { opacity: 0; transform: translateY(-28px) scale(0.3); }
+}
+@keyframes splashBarFill {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+@keyframes splashBarIn {
+  from { opacity: 0; transform: scaleX(0.4); }
+  to   { opacity: 1; transform: scaleX(1); }
 }

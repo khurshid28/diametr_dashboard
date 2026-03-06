@@ -43,6 +43,7 @@ import {
   CardIcon,
   LocationsIcon,
   SaleIcon,
+  CopyIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 import SidebarWidget from "./SidebarWidget";
@@ -114,7 +115,7 @@ const navItems: NavItem[] = [
     name: "Workers",
     path: "/workers",
   },
-    {
+   {
     icon: <LocationsIcon />,
     name: "Regions",
     path: "/regions",
@@ -124,6 +125,18 @@ const navItems: NavItem[] = [
     icon: <SaleIcon />,
     name: "Sales",
     path: "/sales",
+  },
+
+  {
+    icon: <CopyIcon />,
+    name: "Promo Kodlar",
+    path: "/promo-codes",
+  },
+
+  {
+    icon: <PieChartIcon />,
+    name: "Analitika",
+    path: "/analytics",
   },
 ];
 

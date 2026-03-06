@@ -1,8 +1,8 @@
-import PageBreadcrumb from "../../components/common/PageBreadCrumb";
+﻿import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
 
-import { BoxIcon, PlusIcon } from "../../icons";
+import { PlusIcon } from "../../icons";
 import Button from "../../components/ui/button/Button";
 import { useModal } from "../../hooks/useModal";
 import Label from "../../components/form/Label";
@@ -10,7 +10,6 @@ import Input from "../../components/form/input/InputField";
 import { Modal } from "../../components/ui/modal";
 import { useCallback, useRef, useState } from "react";
 
-import FileInput from "../../components/form/input/FileInput";
 import axiosClient from "../../service/axios.service";
 import { useFetchWithLoader } from "../../hooks/useFetchWithLoader";
 import { LoadSpinner } from "../../components/spinner/load-spinner";
@@ -18,6 +17,8 @@ import { usePolling } from "../../hooks/usePolling";
 import CategorysTable, {
   CategoryItemProps,
 } from "../../components/tables/diametr/categoriesTable";
+import ImageField, { ImageFieldResult } from "../../components/common/ImageField";
+
 export interface Category {
   name?: string;
   name_uz?: string;
@@ -46,21 +47,30 @@ export default function CategorysPage() {
   const categoryData: CategoryItemProps[] = Array.isArray(data) ? data : [];
 
   let [Category, setCategory] = useState<Category>(emptyCategory);
-  const fileRef = useRef<File | null>(null);
+  const imageResultRef = useRef<ImageFieldResult | null>(null);
   const [saving, setSaving] = useState(false);
 
   const handleAdding = async () => {
     setSaving(true);
     try {
       let imageFilename = Category.image ?? "";
-      if (fileRef.current) {
+      const imgResult = imageResultRef.current;
+
+      if (imgResult?.mode === "upload" && imgResult.file) {
         const fd = new FormData();
-        fd.append("image", fileRef.current);
+        fd.append("image", imgResult.file);
         const res = await axiosClient.post("/category/upload-image", fd, {
           headers: { "Content-Type": "multipart/form-data" },
         });
         imageFilename = res.data?.data?.image ?? res.data?.image ?? "";
+      } else if (imgResult?.mode === "url" && imgResult.url) {
+        // Backend will fetch URL and save as PNG
+        const res = await axiosClient.post("/category/upload-image-url", {
+          url: imgResult.url,
+        });
+        imageFilename = res.data?.data?.image ?? res.data?.image ?? imgResult.url;
       }
+
       await axiosClient.post("/category", {
         name_uz: Category.name_uz,
         name_ru: Category.name_ru,
@@ -69,7 +79,7 @@ export default function CategorysPage() {
       refetch();
       closeModal();
       setCategory(emptyCategory);
-      fileRef.current = null;
+      imageResultRef.current = null;
     } catch (e) {
       console.error(e);
     } finally {
@@ -77,9 +87,6 @@ export default function CategorysPage() {
     }
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    fileRef.current = event.target.files?.[0] ?? null;
-  };
   return (
     <>
       <PageMeta
@@ -105,6 +112,7 @@ export default function CategorysPage() {
                   startIcon={<PlusIcon className="size-5 fill-white" />}
                   onClick={() => {
                     setCategory(emptyCategory);
+                    imageResultRef.current = null;
                     openModal();
                   }}
                 >
@@ -142,21 +150,20 @@ export default function CategorysPage() {
                   />
                 </div>
                 <div>
-                  <Label>Название (Русский)</Label>
+                  <Label>РќР°Р·РІР°РЅРёРµ (Р СѓСЃСЃРєРёР№)</Label>
                   <Input
                     type="text"
-                    placeholder="Введите название на русском"
+                    placeholder="Р’РІРµРґРёС‚Рµ РЅР°Р·РІР°РЅРёРµ РЅР° СЂСѓСЃСЃРєРѕРј"
                     value={Category.name_ru}
                     onChange={(e) =>
                       setCategory({ ...Category, name_ru: e.target.value })
                     }
                   />
                 </div>
-                <div>
-                  <Label>Image</Label>
-                  <FileInput
-                    onChange={handleFileChange}
-                    className="custom-class"
+                <div className="lg:col-span-2">
+                  <ImageField
+                    label="Rasm"
+                    onChange={(result) => { imageResultRef.current = result; }}
                   />
                 </div>
               </div>

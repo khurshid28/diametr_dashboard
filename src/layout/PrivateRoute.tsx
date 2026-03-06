@@ -1,7 +1,13 @@
 import React, { ReactNode } from 'react';
-import { Navigate } from 'react-router';
+import { Navigate, Outlet } from 'react-router';
 
-export const PrivateRoute = ({ children }: { children: ReactNode }) => {
+interface PrivateRouteProps {
+  children?: ReactNode;
+}
+
+export const PrivateRoute = ({ children }: PrivateRouteProps) => {
   const token = localStorage.getItem('token');
-  return token ? children : <Navigate to="/signin" />;
+  if (!token) return <Navigate to="/signin" replace />;
+  return children ? <>{children}</> : <Outlet />;
 };
+

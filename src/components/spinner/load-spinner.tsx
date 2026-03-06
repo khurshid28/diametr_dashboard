@@ -24,7 +24,7 @@ export function LoadSpinner({ message = "Fetching data", size = 100 }: loadProps
       <div>
         <HashLoader
    
-          color={"#465fff"}
+          color={"#00C48C"}
           loading={true}
           cssOverride={override}
           size={size}

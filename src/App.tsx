@@ -1,29 +1,11 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router";
 import SignIn from "./pages/AuthPages/SignIn";
-import SignUp from "./pages/AuthPages/SignUp";
 import NotFound from "./pages/OtherPage/NotFound";
 import UserProfiles from "./pages/UserProfiles";
-import Videos from "./pages/UiElements/Videos";
-import Images from "./pages/UiElements/Images";
-import Alerts from "./pages/UiElements/Alerts";
-import Badges from "./pages/UiElements/Badges";
-import Avatars from "./pages/UiElements/Avatars";
-import Buttons from "./pages/UiElements/Buttons";
-import BasicTables from "./pages/Tables/BasicTables";
-import Blank from "./pages/Blank";
 import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
-import TeachersPage from "./pages/new/Operators";
-import StudentsPage from "./pages/new/Fillials";
-import GroupsPage from "./pages/new/Merchants";
-
-import MerchantsPage from "./pages/new/Merchants";
-import OperatorsPage from "./pages/new/Operators";
-import FillialsPage from "./pages/new/Fillials";
 import { ToastContainer } from "react-toastify";
-import AppsPage from "./pages/new/Apps";
-import StatisticsPage from "./pages/new/Statistics";
 import ShopsPage from "./pages/diametr/Shops";
 import RegionsPage from "./pages/diametr/Regions";
 import PaymentsPage from "./pages/diametr/Payments";
@@ -34,80 +16,63 @@ import NewsPage from "./pages/diametr/News";
 import AdsPage from "./pages/diametr/Ads";
 import WorkersPage from "./pages/diametr/Workers";
 import ProductsPage from "./pages/diametr/Products";
+import PromoCodesPage from "./pages/diametr/PromoCodes";
+import AnalyticsPage from "./pages/diametr/Analytics";
+import { PrivateRoute } from "./layout/PrivateRoute";
+import SplashScreen from "./components/common/SplashScreen";
+import { useState, useCallback } from "react";
+
+function SplashWrapper({ children }: { children: React.ReactNode }) {
+  const [done, setDone] = useState(false);
+  const handleDone = useCallback(() => setDone(true), []);
+  return (
+    <>
+      {!done && <SplashScreen onDone={handleDone} />}
+      {children}
+    </>
+  );
+}
 
 export default function App() {
   return (
     <>
       <Router basename="/">
-        <ScrollToTop />
-        <Routes>
-          {/* Dashboard Layout */}
-          <Route element={<AppLayout />}>
-            {/* People Page */}
-            <Route path="/" element={<Home />} />
-            <Route path="/shops" element={<ShopsPage />} />
-            <Route path="/categories" element={<CategorysPage />} />
-            <Route path="/products" element={<ProductsPage />} />
+        <SplashWrapper>
+          <ScrollToTop />
+          <Routes>
+            {/* Protected Dashboard Layout */}
+            <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
+              <Route path="/" element={<Home />} />
+              <Route path="/shops" element={<ShopsPage />} />
+              <Route path="/categories" element={<CategorysPage />} />
+              <Route path="/products" element={<ProductsPage />} />
+              <Route path="/payments" element={<PaymentsPage />} />
+              <Route path="/news" element={<NewsPage />} />
+              <Route path="/ads" element={<AdsPage />} />
+              <Route path="/services" element={<ServicesPage />} />
+              <Route path="/workers" element={<WorkersPage />} />
+              <Route path="/regions" element={<RegionsPage />} />
+              <Route path="/sales" element={<SalesPage />} />
+              <Route path="/promo-codes" element={<PromoCodesPage />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/profile" element={<UserProfiles />} />
+            </Route>
 
-             <Route path="/payments" element={<PaymentsPage />} />
+            {/* Auth */}
+            <Route path="/signin" element={<SignIn />} />
 
-            <Route path="/news" element={<NewsPage />} />
-            <Route path="/ads" element={<AdsPage />} />
-            
-            <Route path="/services" element={<ServicesPage />} />
-            <Route path="/workers" element={<WorkersPage />} />
-            
-
-            <Route path="/regions" element={<RegionsPage />} />
-            <Route path="/sales" element={<SalesPage />} />
-
-            {/* People Page */}
-            {/* <Route path="/subjects" element={<SubjectsPage />} />
-            <Route path="/books" element={<BooksPage />} />
-            <Route path="/sections" element={<SectionsPage />} />
-            <Route path="/tests" element={<TestsPage />} />
-
-            <Route path="/results" element={<ResultsPage />} /> */}
-
-            {/* <Route index path="/rate" element={<RatePage />} /> */}
-
-            {/* Others Page */}
-            <Route path="/profile" element={<UserProfiles />} />
-            {/* <Route path="/calendar" element={<Calendar />} />
-            <Route path="/blank" element={<Blank />} /> */}
-
-            {/* Forms */}
-            {/* <Route path="/form-elements" element={<FormElements />} /> */}
-
-            {/* Tables */}
-            {/* <Route path="/basic-tables" element={<BasicTables />} /> */}
-
-            {/* Ui Elements */}
-            {/* <Route path="/alerts" element={<Alerts />} />
-            <Route path="/avatars" element={<Avatars />} />
-            <Route path="/badge" element={<Badges />} />
-            <Route path="/buttons" element={<Buttons />} />
-            <Route path="/images" element={<Images />} /> */}
-            {/* <Route path="/videos" element={<Videos />} /> */}
-
-            {/* Charts */}
-            {/* <Route path="/line-chart" element={<LineChart />} />
-            <Route path="/bar-chart" element={<BarChart />} /> */}
-          </Route>
-
-          {/* Auth Layout */}
-          <Route path="/signin" element={<SignIn />} />
-          {/* <Route path="/signup" element={<SignUp />} /> */}
-
-          {/* Fallback Route */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            {/* Fallback */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </SplashWrapper>
       </Router>
 
       <ToastContainer
         position="bottom-right"
         autoClose={2000}
         hideProgressBar={false}
+        newestOnTop
+        closeOnClick
       />
     </>
   );
