@@ -5,10 +5,11 @@ import UsersTable, { UserItemProps } from "../../components/tables/diametr/users
 import { useFetchWithLoader } from "../../hooks/useFetchWithLoader";
 import { SkeletonTable } from "../../components/spinner/load-spinner";
 import { usePolling } from "../../hooks/usePolling";
+import axiosClient from "../../service/axios.service";
 
 export default function UsersPage() {
   const { data, isLoading, refetch } = useFetchWithLoader<UserItemProps[]>({
-    url: "/user/all",
+    fetcher: () => axiosClient.get("/user/all").then((r) => r.data),
   });
 
   usePolling(refetch, 15_000);

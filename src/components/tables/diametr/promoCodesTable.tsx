@@ -308,8 +308,8 @@ export default function PromoCodesTable({
                 type="number"
                 placeholder={form.discount_type === "PERCENT" ? "20" : "50000"}
                 value={form.discount_value}
-                min={0}
-                max={form.discount_type === "PERCENT" ? 100 : undefined}
+                min="0"
+                max={form.discount_type === "PERCENT" ? "100" : undefined}
                 onChange={(e) => setForm({ ...form, discount_value: e.target.value })}
               />
             </div>

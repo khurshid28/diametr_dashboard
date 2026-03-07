@@ -5,10 +5,11 @@ import AdminsTable, { AdminItemProps } from "../../components/tables/diametr/adm
 import { useFetchWithLoader } from "../../hooks/useFetchWithLoader";
 import { SkeletonTable } from "../../components/spinner/load-spinner";
 import { usePolling } from "../../hooks/usePolling";
+import axiosClient from "../../service/axios.service";
 
 export default function AdminsPage() {
   const { data, isLoading, refetch } = useFetchWithLoader<AdminItemProps[]>({
-    url: "/admin/all",
+    fetcher: () => axiosClient.get("/admin/all").then((r) => r.data),
   });
 
   usePolling(refetch, 15_000);
