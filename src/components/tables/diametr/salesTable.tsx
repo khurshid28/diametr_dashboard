@@ -1,389 +1,188 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from "../../ui/table";
-
+﻿import TableToolbar from "./TableToolbar";
+import { ConfirmDeleteModal } from "./TableActions";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../ui/table";
 import Moment from "moment";
-
-import Badge from "../../ui/badge/Badge";
 import Button from "../../ui/button/Button";
-import {
-  ArrowRightIcon,
-  BoxCubeIcon,
-  CloseIcon,
-  CloseLineIcon,
-  CopyIcon,
-  DeleteIcon,
-  DeliveryIcon,
-  DownloadIcon,
-  EditIcon,
-  EyeCloseIcon,
-  EyeIcon,
-  MoneyIcon,
-  PencilIcon,
-  PlusIcon,
-  UserIcon,
-} from "../../../icons";
+import { DeleteIcon } from "../../../icons";
 import { useEffect, useState } from "react";
-import { useModal } from "../../../hooks/useModal";
-import Input from "../../form/input/InputField";
-import Label from "../../form/Label";
-import { Modal } from "../../ui/modal";
-import Select from "../../form/Select";
-import DropzoneComponent from "../../form/form-elements/DropZone";
-import FileInputExample from "../../form/form-elements/FileInputExample";
-import FileInput from "../../form/input/FileInput";
-import { Sale } from "../../../pages/diametr/Sales";
-import { formatMoney } from "../../../service/formatters/money.format";
-import { formatPhoneNumber } from "../../../service/formatters/phone.format";
+import axiosClient from "../../../service/axios.service";
+import { toast } from "../../ui/toast";
+import * as XLSX from "xlsx";
 
 export interface SaleItemProps {
   id: number;
-  total: number;
-  products?: {
-    name: string;
-    price: number;
-    count: number;
-    product?: {
-      id?: number;
-      name?: string;
-      image?: string;
-    };
-  }[];
-  shop: string;
-  delivery?: {
-    provider: string;
-    amount: number;
-    phone: string;
-  };
-
-  createdAt: string;
+  status?: string;
+  amount?: number;
+  address?: string;
+  phone?: string;
+  payment_type?: string;
+  shop?: { id: number; name?: string };
+  user?: { id: number; phone?: string; fullname?: string };
+  createdt?: string;
+  createdAt?: string;
 }
 
-// Define the table data using the interface
-// const statictableData: Order[] = [
-//   {
-//     id: 1,
-//     merchant: {
-//       name: "Idea"
-//     },
-//     name: "Oq Tepa",
-//     image: "/images/new/idea.png",
-//     createdAt: new Date("2025-03-02"),
-//     region: "Toshkent sh",
-//     status: "Active",
-//   },
-//   {
-//     id: 2,
+const showOptions = [{ value: "10", label: "10" }, { value: "20", label: "20" }, { value: "50", label: "50" }];
 
-//     name: "Mirobod",
-//     merchant: {
-//       name: "Idea"
-//     },
-//     region: "Toshkent sh",
-//     image: "/images/new/idea.png",
-//     createdAt: new Date("2025-03-02"),
+const statusConfig: Record<string, { label: string; className: string }> = {
+  STARTED:   { label: "Yangi",         className: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" },
+  CONFIRMED: { label: "Tasdiqlangan",  className: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
+  FINISHED:  { label: "Bajarilgan",    className: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
+  CANCELED:  { label: "Bekor qilingan", className: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
+};
 
-//     status: "Active",
-//   },
-
-//   {
-//     id: 3,
-//     merchant: {
-//       name: "MediaPark"
-//     },
-//     region: "Toshkent sh",
-//     name: "Chilonzor",
-//     image: "/images/new/media.png",
-//     createdAt: new Date("2025-03-02"),
-//     status: "Active",
-//   },
-
-//   {
-//     id: 4,
-//     merchant: {
-//       name: "MediaPark"
-//     },
-//     region: "Samarqand",
-//     name: "Shahrisabs",
-//     image: "/images/new/media.png",
-//     createdAt: new Date("2025-03-02"),
-//     status: "Active",
-//   },
-
-// ];
-
-export default function SalesTable({ data }: { data: SaleItemProps[] }) {
-  const [tableData, settableData] = useState(data);
-
-  const { isOpen, openModal, closeModal } = useModal();
-  const handleAdding = () => {
-    // Handle save logic here
-
-    console.log("handleAdding...");
-
-    closeModal();
-    setSale(emptySale);
-  };
-  let emptySale: Sale = {
-    name: "",
-    image: "",
-  };
-  let [Sale, setSale] = useState<Sale>(emptySale);
-
-  const options = [
-    { value: "5", label: "5" },
-    { value: "10", label: "10" },
-    { value: "20", label: "20" },
-  ];
-  let [optionValue, setoptionValue] = useState("5");
-
-  let [percent, setPercent] = useState("38");
-
-  let [percent_type, setPercentType] = useState("OUT");
-
-  const handleSelectChange = (value: string) => {
-    setoptionValue(value);
-  };
-
-  // Pationation
-
+export default function SalesTable({ data, onRefetch }: { data: SaleItemProps[]; onRefetch?: () => void }) {
+  const [tableData, setTableData] = useState(data);
+  const [loadingId, setLoadingId] = useState<number | null>(null);
+  const [confirmId, setConfirmId] = useState<number | null>(null);
+  const [optionValue, setOptionValue] = useState("10");
+  const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const maxPage = Math.ceil(tableData.length / +optionValue);
 
-  const startIndex = (currentPage - 1) * +optionValue;
-  const endIndex = startIndex + +optionValue;
-  let currentItems: SaleItemProps[] = tableData.slice(startIndex, endIndex);
+  useEffect(() => { setTableData(data); setCurrentPage(1); }, [data]);
+  useEffect(() => { setCurrentPage(1); }, [optionValue]);
 
-  const goToPreviousPage = () => {
-    setCurrentPage((page) => Math.max(page - 1, 1));
+  const filteredData = search.trim() === "" ? tableData : tableData.filter((s) => { const q = search.toLowerCase(); return (s.address ?? "").toLowerCase().includes(q) || (s.phone ?? "").toLowerCase().includes(q) || (s.user?.fullname ?? "").toLowerCase().includes(q); });
+  const maxPage = Math.ceil(filteredData.length / +optionValue);
+  const currentItems = filteredData.slice((currentPage - 1) * +optionValue, currentPage * +optionValue);
+
+  const doAction = async (id: number, action: "confirm" | "cancel" | "finish") => {
+    setLoadingId(id);
+    try {
+      await axiosClient.put(`/order/${action}/${id}`);
+      const label = action === "confirm" ? "Tasdiqlandi" : action === "cancel" ? "Bekor qilindi" : "Bajarildi";
+      toast.success(label);
+      onRefetch?.();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? "Xatolik yuz berdi");
+    } finally { setLoadingId(null); }
   };
 
-  const goToNextPage = () => {
-    setCurrentPage((page) => Math.min(page + 1, maxPage));
+  const handleDelete = async (id: number) => {
+    try {
+      await axiosClient.delete(`/order/${id}`);
+      toast.success("Buyurtma o'chirildi");
+      onRefetch?.();
+    } catch { toast.error("Xatolik yuz berdi"); }
   };
-  console.log(">> data length :", tableData.length);
 
-  useEffect(() => {
-    const startIndex = (currentPage - 1) * +optionValue;
-    const endIndex = startIndex + +optionValue;
-    currentItems = tableData.slice(startIndex, endIndex);
-  }, [currentPage]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [optionValue]);
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      console.log("Selected file:", file.name);
-    }
+  const handleExport = () => {
+    const ws = XLSX.utils.json_to_sheet(tableData.map((o) => ({
+      ID: o.id, "Do'kon": o.shop?.name ?? "", Mijoz: o.user?.fullname ?? o.user?.phone ?? "",
+      Telefon: o.phone ?? o.user?.phone ?? "", Manzil: o.address ?? "",
+      Summa: (o.amount ?? 0).toLocaleString(),
+      Status: statusConfig[o.status ?? ""]?.label ?? o.status ?? "",
+      Sana: Moment(o.createdAt).format("DD.MM.YYYY HH:mm"),
+    })));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Orders");
+    XLSX.writeFile(wb, `orders-${Moment().format("YYYY-MM-DD")}.xlsx`);
   };
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
       <div className="max-w-full overflow-x-auto">
-        <div className="px-5 py-3  flex flex-row justify-between items-center border-b border-gray-100 dark:border-white/[0.05]">
-          <div className="flex flex-row items-center gap-2 text-theme-sm font-medium text-gray-500 text-start  dark:text-gray-400">
-            <span>Show</span>
-
-            <Select
-              options={options}
-              onChange={handleSelectChange}
-              className="dark:bg-dark-900"
-              defaultValue="5"
-            />
-            <span>entries</span>
-          </div>
-          <div>
-            {" "}
-            <Button
-              size="sm"
-              variant="outline"
-              endIcon={<DownloadIcon className="size-5 fill-white" />}
-            >
-              Download
-            </Button>
-          </div>
-        </div>
+        <TableToolbar search={search} onSearch={(v) => { setSearch(v); setCurrentPage(1); }} searchPlaceholder="Qidirish..." showValue={optionValue} onShowChange={(v) => { setOptionValue(v); setCurrentPage(1); }} onExport={handleExport} />
         <Table>
-          {/* Table Header */}
-          <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
+          <TableHeader>
             <TableRow>
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400"
-              >
-                ID
-              </TableCell>
-
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Products
-              </TableCell>
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Amount
-              </TableCell>
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Shop
-              </TableCell>
-
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Added
-              </TableCell>
-
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Status
-              </TableCell>
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Delivery
-              </TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">#</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Do'kon</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Mijoz</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Summa</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Status</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Sana</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Amallar</TableCell>
             </TableRow>
           </TableHeader>
-
-          {/* Table Body */}
-          <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-            {currentItems.map((order, index) => (
-              <TableRow key={index}>
-                <TableCell className="px-4 py-3 text-gray-500 text-center text-theme-sm dark:text-gray-400">
-                  {order.id}
-                </TableCell>
-                <TableCell className="px-5 py-4 sm:px-6 text-start">
-                  <div className="flex items-start gap-1 flex-col ">
-                    {order.products?.map((item) => (
-                      <div className="flex flex-row gap-2 item-center">
-                        <BoxCubeIcon className="text-gray-800  dark:text-white/90" />
-                        <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
-                          {item.name} ({item.count}x) -{" "}
-                          {formatMoney(item.price * item.count)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </TableCell>
-
-                <TableCell className="px-5 py-4 sm:px-6 text-start">
-                  <div>
-                    <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
-                      {formatMoney(order.total)}
-                    </span>
-                  </div>
-                </TableCell>
-
-                <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                  {order.shop}
-                </TableCell>
-
-                <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                  {Moment(order.createdAt).format("HH:mm - MMMM DD, yyyy")}
-                </TableCell>
-
-                <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                  <Badge
-                    size="sm"
-                    color={
-                      "success"
-                      // order.status === "Active"
-                      //   ? "success"
-                      //   : order.status === "Pending"
-                      //   ? "warning"
-                      //   : "error"
-                    }
-                  >
-                    Active
-                  </Badge>
-                </TableCell>
-
-                <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                  {
-                    order.delivery ? (<div className="flex flex-col items-start">
-                    <div className="flex flex-row gap-2 items-center">
-                      <DeliveryIcon className="text-gray-800  dark:text-white/90" />{" "}
-                      {order.delivery?.provider}
+          <TableBody>
+            {currentItems.length === 0 ? (
+              <TableRow><TableCell colSpan={7} className="py-8 text-center text-gray-400">Buyurtmalar yo'q</TableCell></TableRow>
+            ) : currentItems.map((item, idx) => {
+              const cfg = statusConfig[item.status ?? ""] ?? { label: item.status ?? "-", className: "bg-gray-100 text-gray-600" };
+              const busy = loadingId === item.id;
+              return (
+                <TableRow key={item.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+                  <TableCell className="px-5 py-4 text-sm text-gray-600 dark:text-gray-400">{(currentPage - 1) * +optionValue + idx + 1}</TableCell>
+                  <TableCell className="px-5 py-4 font-medium text-gray-800 dark:text-white">{item.shop?.name ?? "-"}</TableCell>
+                  <TableCell className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400">{item.user?.fullname ?? item.user?.phone ?? item.phone ?? "-"}</TableCell>
+                  <TableCell className="px-5 py-4 text-sm font-semibold text-green-600 dark:text-green-400">
+                    {item.amount != null ? `${item.amount.toLocaleString()} so'm` : "-"}
+                  </TableCell>
+                  <TableCell className="px-5 py-4">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${cfg.className}`}>{cfg.label}</span>
+                  </TableCell>
+                  <TableCell className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400">{Moment(item.createdt ?? item.createdAt).format("DD.MM.YYYY HH:mm")}</TableCell>
+                  <TableCell className="px-5 py-4">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {item.status === "STARTED" && (
+                        <button
+                          disabled={busy}
+                          onClick={() => doAction(item.id, "confirm")}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
+                            bg-blue-500/10 text-blue-600 dark:text-blue-400
+                            hover:bg-blue-500/20 disabled:opacity-40 transition-all"
+                        >
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                          {busy ? "..." : "Tasdiqlash"}
+                        </button>
+                      )}
+                      {(item.status === "STARTED" || item.status === "CONFIRMED") && (
+                        <button
+                          disabled={busy}
+                          onClick={() => doAction(item.id, "finish")}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
+                            bg-emerald-500/10 text-emerald-600 dark:text-emerald-400
+                            hover:bg-emerald-500/20 disabled:opacity-40 transition-all"
+                        >
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                          {busy ? "..." : "Yakunlash"}
+                        </button>
+                      )}
+                      {(item.status === "STARTED" || item.status === "CONFIRMED") && (
+                        <button
+                          disabled={busy}
+                          onClick={() => doAction(item.id, "cancel")}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
+                            bg-red-500/10 text-red-600 dark:text-red-400
+                            hover:bg-red-500/20 disabled:opacity-40 transition-all"
+                        >
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                          {busy ? "..." : "Bekor"}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setConfirmId(item.id)}
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-lg
+                          text-gray-400 hover:text-red-500 hover:bg-red-500/10
+                          dark:text-gray-500 dark:hover:text-red-400 dark:hover:bg-red-500/10
+                          transition-all"
+                      >
+                        <DeleteIcon className="size-3.5" />
+                      </button>
                     </div>
-
-                    <div className="flex flex-row gap-2 items-center">
-                      <MoneyIcon className="text-gray-800  dark:text-white/90" />{" "}
-                      {formatMoney(order.delivery?.amount)}
-                    </div>
-
-                       <div className="flex flex-row gap-2 items-center">
-                      <UserIcon className="text-gray-800  dark:text-white/90" />{" "}
-                      {formatPhoneNumber(order.delivery?.phone)}
-                    </div>
-                  </div>) : (<></>)
-                  }
-                </TableCell>
-              </TableRow>
-            ))}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
-      </div>
-
-      <div className="px-5 py-3 gap-3 flex flex-col md:flex-row justify-between md:items-center border-t border-gray-100 dark:border-white/[0.05] text-theme-sm font-medium text-gray-500  dark:text-gray-400">
-        <div className="flex flex-row items-center gap-2  text-start  ">
-          <Button
-            size="sm"
-            variant="outline"
-            className="w-10 h-10"
-            disabled={currentPage === 1}
-            onClick={goToPreviousPage}
-          >
-            <ArrowRightIcon className="rotate-180 fill-gray-500  dark:fill-gray-400 scale-200" />
-          </Button>
-
-          {[...Array(maxPage)].map((_, i) => (
-            <Button
-              size="sm"
-              variant={currentPage === i + 1 ? "primary" : "outline"}
-              className="w-10 h-10"
-              disabled={false}
-              key={i}
-              onClick={() => {
-                currentPage !== i + 1 && setCurrentPage(i + 1);
-              }}
-            >
-              {i + 1}
-            </Button>
-          ))}
-
-          <Button
-            size="sm"
-            variant="outline"
-            className="w-10 h-10"
-            disabled={currentPage === maxPage}
-            onClick={goToNextPage}
-          >
-            <ArrowRightIcon className=" fill-gray-500  dark:fill-gray-400 scale-200" />
-          </Button>
-        </div>
-        <div>
-          Showing {(currentPage - 1) * +optionValue + 1} to{" "}
-          {Math.min(data.length, currentPage * +optionValue)} of {data.length}{" "}
-          entries
+        <div className="px-5 py-3 flex justify-between items-center border-t border-gray-100 dark:border-white/[0.05]">
+          <span className="text-sm text-gray-500 dark:text-gray-400">{filteredData.length} ta ichidan {Math.min((currentPage-1)*+optionValue+1,filteredData.length)}–{Math.min(currentPage*+optionValue,filteredData.length)} ko'rsatilmoqda</span>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" disabled={currentPage<=1} onClick={()=>setCurrentPage(p=>p-1)}>Oldingi</Button>
+            <Button size="sm" variant="outline" disabled={currentPage>=maxPage} onClick={()=>setCurrentPage(p=>p+1)}>Keyingi</Button>
+          </div>
         </div>
       </div>
+      {confirmId !== null && (
+        <ConfirmDeleteModal
+          title="Buyurtmani o'chirasizmi?"
+          desc="Bu amalni qaytarib bo'lmaydi."
+          onConfirm={() => { handleDelete(confirmId); setConfirmId(null); }}
+          onCancel={() => setConfirmId(null)}
+        />
+      )}
     </div>
   );
 }

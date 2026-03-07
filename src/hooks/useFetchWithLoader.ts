@@ -1,6 +1,6 @@
-import axios, { AxiosError } from "axios";
-import { useEffect, useState, useCallback } from "react";
-import { toast } from "react-toastify";
+import axios from "axios";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { toast } from "../components/ui/toast";
 
 interface FetchOptions<T> {
   fetcher: () => Promise<T>;
@@ -20,14 +20,17 @@ export function useFetchWithLoader<T>({
   const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<any>(null);
+  const hasLoadedOnce = useRef(false);
 
   const fetchData = useCallback(async () => {
-    try {
+    // Only show skeleton on the very first fetch; background refetches are silent
+    if (!hasLoadedOnce.current) {
       setIsLoading(true);
+    }
+    try {
       const result = await fetcher();
       setData(result);
-      console.log(result);
-      
+      hasLoadedOnce.current = true;
       if (successMessage) toast.success(successMessage);
       onSuccess?.(result);
     } catch (err) {

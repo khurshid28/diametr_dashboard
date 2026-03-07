@@ -1,451 +1,170 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from "../../ui/table";
-
+﻿import TableActions from "./TableActions";
+import TableToolbar from "./TableToolbar";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../ui/table";
 import Moment from "moment";
-
-import Badge from "../../ui/badge/Badge";
 import Button from "../../ui/button/Button";
-import {
-  ArrowRightIcon,
-  BoxCubeIcon,
-  CategoryIcon,
-  CloseIcon,
-  CloseLineIcon,
-  CopyIcon,
-  DeleteIcon,
-  DownloadIcon,
-  EditIcon,
-  EyeCloseIcon,
-  EyeIcon,
-  PencilIcon,
-  PlusIcon,
-} from "../../../icons";
-import { useEffect, useState } from "react";
+import { DeleteIcon, EditIcon, DownloadIcon } from "../../../icons";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useModal } from "../../../hooks/useModal";
 import Input from "../../form/input/InputField";
 import Label from "../../form/Label";
 import { Modal } from "../../ui/modal";
 import Select from "../../form/Select";
-import { Category } from "../../../pages/diametr/Categories";
-import DropzoneComponent from "../../form/form-elements/DropZone";
-import FileInputExample from "../../form/form-elements/FileInputExample";
-import FileInput from "../../form/input/FileInput";
+import axiosClient from "../../../service/axios.service";
+import { toast } from "../../ui/toast";
+import * as XLSX from "xlsx";
+import ImageField, { ImageFieldResult } from "../../common/ImageField";
 
 export interface CategoryItemProps {
   id: number;
-  name: string;
+  name?: string;
   name_uz?: string;
   name_ru?: string;
-  image: string;
-  createdAt: string;
-  product_count: number;
+  image?: string;
+  createdt?: string; createdAt?: string;
 }
 
-// Define the table data using the interface
-// const statictableData: Order[] = [
-//   {
-//     id: 1,
-//     merchant: {
-//       name: "Idea"
-//     },
-//     name: "Oq Tepa",
-//     image: "/images/new/idea.png",
-//     createdAt: new Date("2025-03-02"),
-//     region: "Toshkent sh",
-//     status: "Active",
-//   },
-//   {
-//     id: 2,
+const showOptions = [{ value: "10", label: "10" }, { value: "20", label: "20" }, { value: "50", label: "50" }];
+const emptyForm = { name_uz: "", name_ru: "" };
 
-//     name: "Mirobod",
-//     merchant: {
-//       name: "Idea"
-//     },
-//     region: "Toshkent sh",
-//     image: "/images/new/idea.png",
-//     createdAt: new Date("2025-03-02"),
-
-//     status: "Active",
-//   },
-
-//   {
-//     id: 3,
-//     merchant: {
-//       name: "MediaPark"
-//     },
-//     region: "Toshkent sh",
-//     name: "Chilonzor",
-//     image: "/images/new/media.png",
-//     createdAt: new Date("2025-03-02"),
-//     status: "Active",
-//   },
-
-//   {
-//     id: 4,
-//     merchant: {
-//       name: "MediaPark"
-//     },
-//     region: "Samarqand",
-//     name: "Shahrisabs",
-//     image: "/images/new/media.png",
-//     createdAt: new Date("2025-03-02"),
-//     status: "Active",
-//   },
-
-// ];
-
-export default function CategorysTable({
-  data,
-}: {
-  data: CategoryItemProps[];
-}) {
-  const [tableData, settableData] = useState(data);
-
+export default function CategorysTable({ data, onRefetch }: { data: CategoryItemProps[]; onRefetch?: () => void }) {
+  const [tableData, setTableData] = useState(data);
   const { isOpen, openModal, closeModal } = useModal();
-  const handleAdding = () => {
-    // Handle save logic here
-
-    console.log("handleAdding...");
-
-    closeModal();
-    setCategory(emptyCategory);
-  };
-  let emptyCategory: Category = {
-    name: "",
-    name_uz: "",
-    name_ru: "",
-    image: "",
-  };
-  let [Category, setCategory] = useState<Category>(emptyCategory);
-
-  const options = [
-    { value: "5", label: "5" },
-    { value: "10", label: "10" },
-    { value: "20", label: "20" },
-  ];
-  let [optionValue, setoptionValue] = useState("5");
-
-  let [percent, setPercent] = useState("38");
-
-  let [percent_type, setPercentType] = useState("OUT");
-
-  const handleSelectChange = (value: string) => {
-    setoptionValue(value);
-  };
-
-  // Pationation
-
+  const [editItem, setEditItem] = useState<CategoryItemProps | null>(null);
+  const [form, setForm] = useState({ ...emptyForm });
+  const [saving, setSaving] = useState(false);
+  const [optionValue, setOptionValue] = useState("10");
+  const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const maxPage = Math.ceil(tableData.length / +optionValue);
+  const imageResultRef = useRef<ImageFieldResult | null>(null);
+  const imgKey = useRef(0);
 
-  const startIndex = (currentPage - 1) * +optionValue;
-  const endIndex = startIndex + +optionValue;
-  let currentItems: CategoryItemProps[] = tableData.slice(startIndex, endIndex);
+  useEffect(() => { setTableData(data); setCurrentPage(1); }, [data]);
+  useEffect(() => { setCurrentPage(1); }, [optionValue]);
 
-  const goToPreviousPage = () => {
-    setCurrentPage((page) => Math.max(page - 1, 1));
+  const filteredData = search.trim() === "" ? tableData : tableData.filter((s) => { const q = search.toLowerCase(); return (s.name ?? "").toLowerCase().includes(q) || (s.name_uz ?? "").toLowerCase().includes(q) || (s.name_ru ?? "").toLowerCase().includes(q); });
+  const maxPage = Math.ceil(filteredData.length / +optionValue);
+  const currentItems = filteredData.slice((currentPage - 1) * +optionValue, currentPage * +optionValue);
+
+  const staticUrl = import.meta.env.VITE_STATIC_PATH ?? "";
+
+  const openEdit = (item: CategoryItemProps) => {
+    setEditItem(item);
+    setForm({ name_uz: item.name_uz ?? item.name ?? "", name_ru: item.name_ru ?? "" });
+    imageResultRef.current = null;
+    imgKey.current++;
+    openModal();
   };
 
-  const goToNextPage = () => {
-    setCurrentPage((page) => Math.min(page + 1, maxPage));
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      let imageFilename: string | undefined;
+      const imgResult = imageResultRef.current;
+      if (imgResult?.mode === "upload" && imgResult.file) {
+        const fd = new FormData();
+        fd.append("image", imgResult.file);
+        const res = await axiosClient.post("/category/upload-image", fd, { headers: { "Content-Type": "multipart/form-data" } });
+        imageFilename = res.data?.data?.image ?? res.data?.image;
+      } else if (imgResult?.mode === "url" && imgResult.url) {
+        const res = await axiosClient.post("/category/upload-image-url", { url: imgResult.url });
+        imageFilename = res.data?.data?.image ?? res.data?.image ?? imgResult.url;
+      }
+      const payload: any = { name_uz: form.name_uz, name_ru: form.name_ru };
+      if (imageFilename) payload.image = imageFilename;
+      if (editItem) {
+        await axiosClient.put(`/category/${editItem.id}`, payload);
+        toast.success("Kategoriya yangilandi");
+      }
+      onRefetch?.(); closeModal();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? "Xatolik yuz berdi");
+    } finally { setSaving(false); }
   };
-  console.log(">> data length :", tableData.length);
 
-  useEffect(() => {
-    const startIndex = (currentPage - 1) * +optionValue;
-    const endIndex = startIndex + +optionValue;
-    currentItems = tableData.slice(startIndex, endIndex);
-  }, [currentPage]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [optionValue]);
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      console.log("Selected file:", file.name);
-    }
+  const handleDelete = async (id: number) => {
+    try {
+      await axiosClient.delete(`/category/${id}`);
+      toast.success("Kategoriya o'chirildi");
+      onRefetch?.();
+    } catch { toast.error("Xatolik yuz berdi"); }
   };
 
-  const region_options = [
-    { value: "Toshkent sh", label: "Toshkent sh" },
-    { value: "Andijon", label: "Andijon" },
-    { value: "Buxoro", label: "Buxoro" },
-    { value: "Farg'ona", label: "Farg'ona" },
-    { value: "Jizzax", label: "Jizzax" },
-    { value: "Samarqand", label: "Samarqand" },
-    { value: "Toshkent", label: "Toshkent" },
-  ];
-
-  const percent_type_options = [
-    { value: "OUT", label: "OUT" },
-    { value: "IN", label: "IN" },
-  ];
+  const handleExport = () => {
+    const ws = XLSX.utils.json_to_sheet(tableData.map((c) => ({
+      ID: c.id, "Nomi (UZ)": c.name_uz ?? c.name ?? "", "Nomi (RU)": c.name_ru ?? "",
+      "Yaratilgan": Moment(c.createdAt).format("DD.MM.YYYY"),
+    })));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Categories");
+    XLSX.writeFile(wb, `categories-${Moment().format("YYYY-MM-DD")}.xlsx`);
+  };
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
       <div className="max-w-full overflow-x-auto">
-        <div className="px-5 py-3  flex flex-row justify-between items-center border-b border-gray-100 dark:border-white/[0.05]">
-          <div className="flex flex-row items-center gap-2 text-theme-sm font-medium text-gray-500 text-start  dark:text-gray-400">
-            <span>Show</span>
-
-            <Select
-              options={options}
-              onChange={handleSelectChange}
-              className="dark:bg-dark-900"
-              defaultValue="5"
-            />
-            <span>entries</span>
-          </div>
-          <div>
-            {" "}
-            <Button
-              size="sm"
-              variant="outline"
-              endIcon={<DownloadIcon className="size-5 fill-white" />}
-            >
-              Download
-            </Button>
-          </div>
-        </div>
+        <TableToolbar search={search} onSearch={(v) => { setSearch(v); setCurrentPage(1); }} searchPlaceholder="Qidirish..." showValue={optionValue} onShowChange={(v) => { setOptionValue(v); setCurrentPage(1); }} onExport={handleExport} />
         <Table>
-          {/* Table Header */}
-          <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
+          <TableHeader>
             <TableRow>
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400"
-              >
-                ID
-              </TableCell>
-
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Category
-              </TableCell>
-               <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400"
-              >
-                Products
-              </TableCell>
-
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Added
-              </TableCell>
-
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Status
-              </TableCell>
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Actions
-              </TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">#</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Rasm</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Nomi (UZ)</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Nomi (RU)</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Yaratilgan</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Amallar</TableCell>
             </TableRow>
           </TableHeader>
-
-          {/* Table Body */}
-          <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-            {currentItems.map((order, index) => (
-              <TableRow key={index}>
-                <TableCell className="px-4 py-3 text-gray-500 text-center text-theme-sm dark:text-gray-400">
-                  {order.id}
+          <TableBody>
+            {currentItems.length === 0 ? (
+              <TableRow><TableCell colSpan={6} className="py-8 text-center text-gray-400">Ma'lumot yo'q</TableCell></TableRow>
+            ) : currentItems.map((item, idx) => (
+              <TableRow key={item.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+                <TableCell className="px-5 py-4 text-sm text-gray-600 dark:text-gray-400">{(currentPage - 1) * +optionValue + idx + 1}</TableCell>
+                <TableCell className="px-5 py-4">
+                  {item.image ? (
+                    <img src={`${staticUrl}/${item.image}`} alt={item.name_uz} className="w-10 h-10 rounded-xl object-cover ring-2 ring-white dark:ring-white/[0.06] shadow-sm" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                  ) : <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center"><svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.5' className='text-gray-400 dark:text-gray-600'><rect x='3' y='3' width='18' height='18' rx='4' /><circle cx='9' cy='9' r='2' /><path d='m21 15-5-5L5 21'/></svg></div>}
                 </TableCell>
-                <TableCell className="px-5 py-4 sm:px-6 text-start">
-                  <div className="flex items-center gap-3">
-                    <div className=" overflow-hidden rounded-sm ">
-                      {order.image ? (
-                        <img
-                          width={50}
-                          height={50}
-                          // src={import.meta.env.VITE_STATIC_PATH + order.image}
-                          src={ order.image}
-                          alt={order.name}
-                        />
-                      ) : (
-                        <CategoryIcon className="w-10 h-10 text-gray-500  text-theme-sm dark:text-gray-400" />
-                      )}
-                    </div>
-                    <div>
-                      <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
-                        {order.name_uz || order.name}
-                      </span>
-                      {order.name_ru && (
-                        <span className="block text-gray-400 text-xs mt-0.5">
-                          {order.name_ru}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </TableCell>
-                  <TableCell className="px-4 py-3 text-gray-500 text-center text-theme-sm dark:text-gray-400">
-                  {order.product_count}
-                </TableCell>
-                <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                  {Moment(order.createdAt).format("HH:mm - MMMM DD, yyyy")}
-                </TableCell>
-
-                <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                  <Badge
-                    size="sm"
-                    color={
-                      "success"
-                      // order.status === "Active"
-                      //   ? "success"
-                      //   : order.status === "Pending"
-                      //   ? "warning"
-                      //   : "error"
-                    }
-                  >
-                    Active
-                  </Badge>
-                </TableCell>
-                <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400 flex gap-2  flex-row items-center">
-                  <Button
-                    size="mini"
-                    variant="outline"
-                    className="text-xl fill-gray-500 dark:fill-gray-400"
-                    onClick={() => {
-                      setCategory({
-                        name: order.name,
-                        name_uz: order.name_uz || "",
-                        name_ru: order.name_ru || "",
-                        image: "",
-                      });
-                      openModal();
-                    }}
-                  >
-                    <PencilIcon></PencilIcon>
-                  </Button>
-
-                  <Button
-                    size="mini"
-                    variant="outline"
-                    onClick={async () => {}}
-                  >
-                    <DeleteIcon className="text-xl fill-gray-500 dark:fill-gray-400"></DeleteIcon>
-                  </Button>
+                <TableCell className="px-5 py-4 font-medium text-gray-800 dark:text-white">{item.name_uz ?? item.name ?? "-"}</TableCell>
+                <TableCell className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400">{item.name_ru ?? "-"}</TableCell>
+                <TableCell className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400">{Moment(item.createdt ?? item.createdAt).format("DD.MM.YYYY")}</TableCell>
+                <TableCell className="px-5 py-4">
+                  <TableActions onEdit={() => openEdit(item)} onDelete={() => handleDelete(item.id)} />
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-      </div>
-
-      <div className="px-5 py-3 gap-3 flex flex-col md:flex-row justify-between md:items-center border-t border-gray-100 dark:border-white/[0.05] text-theme-sm font-medium text-gray-500  dark:text-gray-400">
-        <div className="flex flex-row items-center gap-2  text-start  ">
-          <Button
-            size="sm"
-            variant="outline"
-            className="w-10 h-10"
-            disabled={currentPage === 1}
-            onClick={goToPreviousPage}
-          >
-            <ArrowRightIcon className="rotate-180 fill-gray-500  dark:fill-gray-400 scale-200" />
-          </Button>
-
-          {[...Array(maxPage)].map((_, i) => (
-            <Button
-              size="sm"
-              variant={currentPage === i + 1 ? "primary" : "outline"}
-              className="w-10 h-10"
-              disabled={false}
-              key={i}
-              onClick={() => {
-                currentPage !== i + 1 && setCurrentPage(i + 1);
-              }}
-            >
-              {i + 1}
-            </Button>
-          ))}
-
-          <Button
-            size="sm"
-            variant="outline"
-            className="w-10 h-10"
-            disabled={currentPage === maxPage}
-            onClick={goToNextPage}
-          >
-            <ArrowRightIcon className=" fill-gray-500  dark:fill-gray-400 scale-200" />
-          </Button>
-        </div>
-        <div>
-          Showing {(currentPage - 1) * +optionValue + 1} to{" "}
-          {Math.min(data.length, currentPage * +optionValue)} of {data.length}{" "}
-          entries
-        </div>
-      </div>
-
-      <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
-        <div className="relative w-full p-4 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-11">
-          <div className="px-2 pr-14">
-            <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-              Edit Category
-            </h4>
-            <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-              Update Category with full details.
-            </p>
+        <div className="px-5 py-3 flex justify-between items-center border-t border-gray-100 dark:border-white/[0.05]">
+          <span className="text-sm text-gray-500 dark:text-gray-400">{tableData.length} ta ichidan {Math.min((currentPage-1)*+optionValue+1,tableData.length)}–{Math.min(currentPage*+optionValue,tableData.length)} ko'rsatilmoqda</span>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" disabled={currentPage<=1} onClick={()=>setCurrentPage(p=>p-1)}>Oldingi</Button>
+            <Button size="sm" variant="outline" disabled={currentPage>=maxPage} onClick={()=>setCurrentPage(p=>p+1)}>Keyingi</Button>
           </div>
-          <form className="flex flex-col">
-            <div className="px-2 overflow-y-auto custom-scrollbar">
-              <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-                <div>
-                  <Label>Nomi (O'zbek) 🇺🇿</Label>
-                  <Input
-                    type="text"
-                    placeholder="Uzbekcha nomini kiriting"
-                    value={Category.name_uz}
-                    onChange={(e) =>
-                      setCategory({ ...Category, name_uz: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>Название (Русский) 🇷🇺</Label>
-                  <Input
-                    type="text"
-                    placeholder="Введите название на русском"
-                    value={Category.name_ru}
-                    onChange={(e) =>
-                      setCategory({ ...Category, name_ru: e.target.value })
-                    }
-                  />
-                </div>
+        </div>
+      </div>
 
-                <div>
-                  <Label>Image</Label>
-                  <FileInput
-                    onChange={handleFileChange}
-                    className="custom-class"
-                  />
-                </div>
-              </div>
+      <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[600px] m-4">
+        <div className="relative w-full p-4 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-8">
+          <div className="px-2 pr-14 mb-6">
+            <h4 className="text-xl font-semibold text-gray-800 dark:text-white">Kategoriyani tahrirlash</h4>
+          </div>
+          <div className="flex flex-col gap-4 px-2">
+            <div>
+              <Label>Nomi (O'zbek)</Label>
+              <Input type="text" placeholder="Uzbekcha nomi" value={form.name_uz} onChange={(e) => setForm({ ...form, name_uz: e.target.value })} />
             </div>
-            <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
-              <Button size="sm" variant="outline" onClick={closeModal}>
-                Close
-              </Button>
-              <Button size="sm" onClick={handleAdding}>
-                Saves
-              </Button>
+            <div>
+              <Label>Nomi (Ruscha)</Label>
+              <Input type="text" placeholder="Ruscha nomi" value={form.name_ru} onChange={(e) => setForm({ ...form, name_ru: e.target.value })} />
             </div>
-          </form>
+            <ImageField key={imgKey.current} label="Rasm (ixtiyoriy)" onChange={(r) => { imageResultRef.current = r; }} />
+          </div>
+          <div className="flex items-center gap-3 px-2 mt-6 justify-end">
+            <Button size="sm" variant="outline" onClick={closeModal}>Bekor qilish</Button>
+            <Button size="sm" onClick={handleSave} disabled={saving}>{saving ? "Saqlanmoqda..." : "Saqlash"}</Button>
+          </div>
         </div>
       </Modal>
     </div>

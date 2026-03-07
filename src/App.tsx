@@ -5,8 +5,10 @@ import UserProfiles from "./pages/UserProfiles";
 import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
-import { ToastContainer } from "react-toastify";
+import { DiametrToastProvider } from "./components/ui/toast";
 import ShopsPage from "./pages/diametr/Shops";
+import UsersPage from "./pages/diametr/Users";
+import AdminsPage from "./pages/diametr/Admins";
 import RegionsPage from "./pages/diametr/Regions";
 import PaymentsPage from "./pages/diametr/Payments";
 import SalesPage from "./pages/diametr/Sales";
@@ -28,14 +30,14 @@ function SplashWrapper({ children }: { children: React.ReactNode }) {
   return (
     <>
       {!done && <SplashScreen onDone={handleDone} />}
-      {children}
+      {done && children}
     </>
   );
 }
 
 export default function App() {
   return (
-    <>
+    <DiametrToastProvider>
       <Router basename="/">
         <SplashWrapper>
           <ScrollToTop />
@@ -55,6 +57,8 @@ export default function App() {
               <Route path="/sales" element={<SalesPage />} />
               <Route path="/promo-codes" element={<PromoCodesPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/users" element={<UsersPage />} />
+              <Route path="/admins" element={<AdminsPage />} />
               <Route path="/profile" element={<UserProfiles />} />
             </Route>
 
@@ -66,14 +70,6 @@ export default function App() {
           </Routes>
         </SplashWrapper>
       </Router>
-
-      <ToastContainer
-        position="bottom-right"
-        autoClose={2000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-      />
-    </>
+    </DiametrToastProvider>
   );
 }

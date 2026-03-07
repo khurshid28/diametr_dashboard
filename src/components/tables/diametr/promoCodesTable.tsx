@@ -1,4 +1,4 @@
-import {
+﻿import {
   Table,
   TableBody,
   TableCell,
@@ -7,6 +7,8 @@ import {
 } from "../../ui/table";
 
 import Moment from "moment";
+import TableActions from "./TableActions";
+import TableToolbar from "./TableToolbar";
 import Badge from "../../ui/badge/Badge";
 import Button from "../../ui/button/Button";
 import {
@@ -23,7 +25,7 @@ import Label from "../../form/Label";
 import { Modal } from "../../ui/modal";
 import Select from "../../form/Select";
 import axiosClient from "../../../service/axios.service";
-import { toast } from "react-toastify";
+import { toast } from "../../ui/toast";
 import { formatMoney } from "../../../service/formatters/money.format";
 import * as XLSX from "xlsx";
 
@@ -37,7 +39,7 @@ export interface PromoCodeItemProps {
   used_count: number;
   is_active: boolean;
   expires_at?: string;
-  createdAt: string;
+  createdt?: string; createdAt?: string;
 }
 
 const options = [
@@ -73,6 +75,7 @@ export default function PromoCodesTable({
   const [form, setForm] = useState({ ...emptyForm });
   const [saving, setSaving] = useState(false);
   const [optionValue, setOptionValue] = useState("10");
+  const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
@@ -80,9 +83,10 @@ export default function PromoCodesTable({
     setCurrentPage(1);
   }, [data]);
 
-  const maxPage = Math.ceil(tableData.length / +optionValue);
+  const filteredData = search.trim() === "" ? tableData : tableData.filter((s) => { const q = search.toLowerCase(); return (s.code ?? "").toLowerCase().includes(q); });
+  const maxPage = Math.ceil(filteredData.length / +optionValue);
   const startIndex = (currentPage - 1) * +optionValue;
-  const currentItems = tableData.slice(startIndex, startIndex + +optionValue);
+  const currentItems = filteredData.slice(startIndex, startIndex + +optionValue);
 
   const openEdit = (item: PromoCodeItemProps) => {
     setEditItem(item);
@@ -131,7 +135,6 @@ export default function PromoCodesTable({
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("O'chirishni tasdiqlaysizmi?")) return;
     try {
       await axiosClient.delete(`/promo-code/${id}`);
       toast.success("O'chirildi");
@@ -246,14 +249,7 @@ export default function PromoCodesTable({
                   {Moment(p.createdAt).format("DD.MM.YYYY HH:mm")}
                 </TableCell>
                 <TableCell className="px-5 py-4">
-                  <div className="flex gap-2">
-                    <button onClick={() => openEdit(p)} className="text-brand-500 hover:text-brand-700">
-                      <EditIcon className="size-4" />
-                    </button>
-                    <button onClick={() => handleDelete(p.id)} className="text-red-500 hover:text-red-700">
-                      <DeleteIcon className="size-4" />
-                    </button>
-                  </div>
+                  <TableActions onEdit={() => openEdit(p)} onDelete={() => handleDelete(p.id)} />
                 </TableCell>
               </TableRow>
             ))}
@@ -312,6 +308,8 @@ export default function PromoCodesTable({
                 type="number"
                 placeholder={form.discount_type === "PERCENT" ? "20" : "50000"}
                 value={form.discount_value}
+                min={0}
+                max={form.discount_type === "PERCENT" ? 100 : undefined}
                 onChange={(e) => setForm({ ...form, discount_value: e.target.value })}
               />
             </div>

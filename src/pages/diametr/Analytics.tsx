@@ -1,4 +1,4 @@
-import PageBreadcrumb from "../../components/common/PageBreadCrumb";
+﻿import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
 import { useCallback, useEffect, useState } from "react";
 import axiosClient from "../../service/axios.service";
@@ -10,16 +10,28 @@ import * as XLSX from "xlsx";
 import { DownloadIcon } from "../../icons";
 import Button from "../../components/ui/button/Button";
 
-// ─────────────────────────────────────────────────────────
-// interfaces
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Interfaces
+// ─────────────────────────────────────────────────────────────────────────────
 interface OrderItem {
   id: number;
-  total: number;
+  amount?: number;
   payment_type?: string;
-  createdAt: string;
-  shop?: string;
-  products?: { name: string; price: number; count: number }[];
+  status?: string;
+  createdt?: string;
+  createdAt?: string;
+  shop?: { id?: number; name?: string };
+  products?: {
+    count?: number;
+    amount?: number;
+    shop_product?: {
+      price?: number;
+      product_item?: {
+        name?: string;
+        product?: { name?: string; name_uz?: string };
+      };
+    };
+  }[];
 }
 
 interface ShopStat {
@@ -36,38 +48,44 @@ interface PaymentStat {
   total: number;
 }
 
-// ─────────────────────────────────────────────────────────
-// helpers
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+function getProductName(p: NonNullable<OrderItem["products"]>[number]): string {
+  return (
+    p?.shop_product?.product_item?.product?.name_uz ??
+    p?.shop_product?.product_item?.product?.name ??
+    p?.shop_product?.product_item?.name ??
+    "Noma'lum"
+  );
+}
+
 function buildStats(orders: OrderItem[]) {
   const shopMap: Record<string, ShopStat> = {};
   const paymentMap: Record<string, { count: number; total: number }> = {};
 
   orders.forEach((o) => {
-    const shop = o.shop ?? "Noma'lum";
+    const shop = o.shop?.name ?? "Noma'lum do'kon";
     const payType = o.payment_type ?? "Noma'lum";
+    const orderAmount = o.amount ?? 0;
 
-    // shop stats
     if (!shopMap[shop]) {
       shopMap[shop] = { shop, totalOrders: 0, totalRevenue: 0, products: {}, payments: {} };
     }
     shopMap[shop].totalOrders += 1;
-    shopMap[shop].totalRevenue += o.total ?? 0;
+    shopMap[shop].totalRevenue += orderAmount;
     shopMap[shop].payments[payType] = (shopMap[shop].payments[payType] ?? 0) + 1;
 
-    o.products?.forEach((p) => {
-      const name = p.name ?? "Noma'lum";
-      if (!shopMap[shop].products[name]) {
-        shopMap[shop].products[name] = { count: 0, revenue: 0 };
-      }
+    (o.products ?? []).forEach((p) => {
+      const name = getProductName(p);
+      if (!shopMap[shop].products[name]) shopMap[shop].products[name] = { count: 0, revenue: 0 };
       shopMap[shop].products[name].count += p.count ?? 1;
-      shopMap[shop].products[name].revenue += (p.price ?? 0) * (p.count ?? 1);
+      shopMap[shop].products[name].revenue += (p.amount ?? 0);
     });
 
-    // global payment stats
     if (!paymentMap[payType]) paymentMap[payType] = { count: 0, total: 0 };
     paymentMap[payType].count += 1;
-    paymentMap[payType].total += o.total ?? 0;
+    paymentMap[payType].total += orderAmount;
   });
 
   return {
@@ -76,68 +94,47 @@ function buildStats(orders: OrderItem[]) {
   };
 }
 
-// ─────────────────────────────────────────────────────────
-// export helpers
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Export
+// ─────────────────────────────────────────────────────────────────────────────
 function exportOverview(orders: OrderItem[]) {
   const { shopStats, paymentStats } = buildStats(orders);
-
   const wb = XLSX.utils.book_new();
 
-  // Sheet 1 – general
-  const generalRows = [
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
     ["Jami buyurtmalar", orders.length],
-    ["Jami tushum", orders.reduce((s, o) => s + (o.total ?? 0), 0)],
+    ["Jami tushum", orders.reduce((s, o) => s + (o.amount ?? 0), 0)],
     ["Faol do'konlar", shopStats.length],
     ["Sanasi", Moment().format("DD.MM.YYYY HH:mm")],
-  ];
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(generalRows), "Umumiy");
+  ]), "Umumiy");
 
-  // Sheet 2 – by shop
-  const shopRows = [
-    ["Do'kon", "Buyurtmalar", "Tushum", "Asosiy tolov usuli"],
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+    ["Do'kon", "Buyurtmalar", "Tushum", "Asosiy to'lov"],
     ...shopStats.map((s) => {
       const topPay = Object.entries(s.payments).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "-";
       return [s.shop, s.totalOrders, s.totalRevenue, topPay];
     }),
-  ];
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(shopRows), "Do'konlar bo'yicha");
+  ]), "Do'konlar");
 
-  // Sheet 3 – by payment method
-  const payRows = [
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
     ["To'lov usuli", "Soni", "Jami summa"],
     ...paymentStats.map((p) => [p.type, p.count, p.total]),
-  ];
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(payRows), "Tolov usullari");
+  ]), "To'lov usullari");
 
-  // Sheet 4 – raw orders
-  const orderRows = [
-    ["ID", "Do'kon", "Summa", "To'lov", "Sana"],
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+    ["ID", "Do'kon", "Summa", "To'lov", "Status", "Sana"],
     ...orders.map((o) => [
-      o.id,
-      o.shop ?? "-",
-      o.total ?? 0,
-      o.payment_type ?? "-",
-      Moment(o.createdAt).format("DD.MM.YYYY HH:mm"),
+      o.id, o.shop?.name ?? "-", o.amount ?? 0, o.payment_type ?? "-",
+      o.status ?? "-", Moment(o.createdt ?? o.createdAt).format("DD.MM.YYYY HH:mm"),
     ]),
-  ];
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(orderRows), "Buyurtmalar");
-
-  // Sheet 5 – products per shop
-  const prodRows: any[][] = [["Do'kon", "Mahsulot", "Soni", "Tushum"]];
-  shopStats.forEach((s) => {
-    Object.entries(s.products).forEach(([name, v]) => {
-      prodRows.push([s.shop, name, v.count, v.revenue]);
-    });
-  });
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(prodRows), "Mahsulotlar bo'yicha");
+  ]), "Buyurtmalar");
 
   XLSX.writeFile(wb, `diametr-analytics-${Moment().format("YYYY-MM-DD")}.xlsx`);
 }
 
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 // Component
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 export default function AnalyticsPage() {
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -149,21 +146,23 @@ export default function AnalyticsPage() {
     try {
       const res = await axiosClient.get("/order/all");
       setOrders(Array.isArray(res.data) ? res.data : []);
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }, []);
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
   usePolling(fetchOrders, 30_000);
 
   const filtered = orders.filter((o) => {
-    const d = Moment(o.createdAt);
+    const d = Moment(o.createdt ?? o.createdAt);
     return d.isSameOrAfter(dateFrom, "day") && d.isSameOrBefore(dateTo, "day");
   });
 
-  const totalRevenue = filtered.reduce((s, o) => s + (o.total ?? 0), 0);
+  const totalRevenue = filtered.reduce((s, o) => s + (o.amount ?? 0), 0);
   const { shopStats, paymentStats } = buildStats(filtered);
+
+  const statusConfig: Record<string, string> = {
+    STARTED: "Yangi", CONFIRMED: "Tasdiqlangan", FINISHED: "Yakunlangan", CANCELED: "Bekor qilingan",
+  };
 
   return (
     <>
@@ -174,28 +173,15 @@ export default function AnalyticsPage() {
       <div className="flex flex-wrap gap-4 mb-6 items-end">
         <div>
           <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Dan</label>
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-900 text-gray-800 dark:text-white"
-          />
+          <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
+            className="border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-900 text-gray-800 dark:text-white" />
         </div>
         <div>
           <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Gacha</label>
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className="border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-900 text-gray-800 dark:text-white"
-          />
+          <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
+            className="border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-900 text-gray-800 dark:text-white" />
         </div>
-        <Button
-          size="sm"
-          variant="primary"
-          endIcon={<DownloadIcon className="size-4 fill-white" />}
-          onClick={() => exportOverview(filtered)}
-        >
+        <Button size="sm" variant="primary" endIcon={<DownloadIcon className="size-4 fill-white" />} onClick={() => exportOverview(filtered)}>
           Excel eksport
         </Button>
       </div>
@@ -207,12 +193,12 @@ export default function AnalyticsPage() {
           {/* KPI cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
-              { label: "Jami buyurtmalar", value: filtered.length, color: "bg-brand-500" },
-              { label: "Jami tushum", value: formatMoney(totalRevenue), color: "bg-success-500" },
-              { label: "Faol do'konlar", value: shopStats.length, color: "bg-blue-light-500" },
-              { label: "To'lov usullari", value: paymentStats.length, color: "bg-orange-500" },
-            ].map((c) => (
-              <div key={c.label} className="rounded-2xl border border-gray-100 dark:border-white/[0.05] bg-white dark:bg-white/[0.03] p-5">
+              { label: "Jami buyurtmalar", value: filtered.length },
+              { label: "Jami tushum", value: formatMoney(totalRevenue) },
+              { label: "Faol do'konlar", value: shopStats.length },
+              { label: "To'lov usullari", value: paymentStats.length },
+            ].map((c, i) => (
+              <div key={i} className="rounded-2xl border border-gray-100 dark:border-white/[0.05] bg-white dark:bg-white/[0.03] p-5">
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{c.label}</p>
                 <p className="text-xl font-bold text-gray-800 dark:text-white">{c.value}</p>
               </div>
@@ -233,8 +219,8 @@ export default function AnalyticsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50 dark:divide-white/[0.03]">
-                  {paymentStats.map((p) => (
-                    <tr key={p.type}>
+                  {paymentStats.map((p, i) => (
+                    <tr key={i}>
                       <td className="py-2 pr-4 font-medium text-gray-800 dark:text-white">{p.type}</td>
                       <td className="py-2 pr-4 text-gray-600 dark:text-gray-300">{p.count}</td>
                       <td className="py-2 pr-4 text-gray-600 dark:text-gray-300">{formatMoney(p.total)}</td>
@@ -258,15 +244,15 @@ export default function AnalyticsPage() {
                     <th className="pb-2 pr-4">Do'kon</th>
                     <th className="pb-2 pr-4">Buyurtmalar</th>
                     <th className="pb-2 pr-4">Tushum</th>
-                    <th className="pb-2 pr-4">Mahsulotlar (tur)</th>
+                    <th className="pb-2 pr-4">Mahsulotlar</th>
                     <th className="pb-2">Asosiy to'lov</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50 dark:divide-white/[0.03]">
-                  {shopStats.map((s) => {
+                  {shopStats.map((s, i) => {
                     const topPay = Object.entries(s.payments).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "-";
                     return (
-                      <tr key={s.shop}>
+                      <tr key={i}>
                         <td className="py-2 pr-4 font-medium text-gray-800 dark:text-white">{s.shop}</td>
                         <td className="py-2 pr-4 text-gray-600 dark:text-gray-300">{s.totalOrders}</td>
                         <td className="py-2 pr-4 text-gray-600 dark:text-gray-300">{formatMoney(s.totalRevenue)}</td>
@@ -280,12 +266,10 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          {/* Products per shop detail */}
-          {shopStats.map((s) => (
-            <div key={s.shop} className="rounded-2xl border border-gray-100 dark:border-white/[0.05] bg-white dark:bg-white/[0.03] p-5">
-              <h3 className="font-semibold text-gray-800 dark:text-white mb-3">
-                {s.shop} – mahsulotlar bo'yicha
-              </h3>
+          {/* Per-shop product breakdown */}
+          {shopStats.map((s, si) => (
+            <div key={si} className="rounded-2xl border border-gray-100 dark:border-white/[0.05] bg-white dark:bg-white/[0.03] p-5">
+              <h3 className="font-semibold text-gray-800 dark:text-white mb-3">{s.shop} – mahsulotlar bo'yicha</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -296,15 +280,13 @@ export default function AnalyticsPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50 dark:divide-white/[0.03]">
-                    {Object.entries(s.products)
-                      .sort((a, b) => b[1].revenue - a[1].revenue)
-                      .map(([name, v]) => (
-                        <tr key={name}>
-                          <td className="py-2 pr-4 text-gray-800 dark:text-white">{name}</td>
-                          <td className="py-2 pr-4 text-gray-600 dark:text-gray-300">{v.count}</td>
-                          <td className="py-2 text-gray-600 dark:text-gray-300">{formatMoney(v.revenue)}</td>
-                        </tr>
-                      ))}
+                    {Object.entries(s.products).sort((a, b) => b[1].revenue - a[1].revenue).map(([name, v], pi) => (
+                      <tr key={pi}>
+                        <td className="py-2 pr-4 text-gray-800 dark:text-white">{name}</td>
+                        <td className="py-2 pr-4 text-gray-600 dark:text-gray-300">{v.count}</td>
+                        <td className="py-2 text-gray-600 dark:text-gray-300">{formatMoney(v.revenue)}</td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>

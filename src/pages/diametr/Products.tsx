@@ -13,13 +13,13 @@ import { useCallback, useRef, useState } from "react";
 import Select from "../../components/form/Select";
 import axiosClient from "../../service/axios.service";
 import { useFetchWithLoader } from "../../hooks/useFetchWithLoader";
-import { LoadSpinner } from "../../components/spinner/load-spinner";
+import { SkeletonTable } from "../../components/spinner/load-spinner";
 import ProductsTable, {
   ProductItemProps,
 } from "../../components/tables/diametr/productsTable";
 import { usePolling } from "../../hooks/usePolling";
 import ImageField, { ImageFieldResult } from "../../components/common/ImageField";
-import { toast } from "react-toastify";
+import { toast } from "../../components/ui/toast";
 
 export interface Product {
   name?: string;
@@ -111,34 +111,25 @@ export default function ProductsPage() {
       <PageBreadcrumb pageTitle="Products" />
 
       <div className="space-y-6 ">
-        {isLoading && (
-          <div className="min-h-[450px] flex-col flex justify-center">
-            <LoadSpinner />
-          </div>
-        )}
-        {!isLoading && productData && (
-          <ComponentCard
-            title="Products Table"
-            action={
-              <>
-                <Button
-                  size="sm"
-                  variant="primary"
-                  startIcon={<PlusIcon className="size-5 fill-white" />}
-                  onClick={() => {
-                    setProduct(emptyProduct);
-                    imageResultRef.current = null;
-                    openModal();
-                  }}
-                >
-                  Add Product
-                </Button>
-              </>
-            }
-          >
-            <ProductsTable data={productData} />
-          </ComponentCard>
-        )}
+        <ComponentCard
+          title="Products Table"
+          action={
+            <Button
+              size="sm"
+              variant="primary"
+              startIcon={<PlusIcon className="size-5 fill-white" />}
+              onClick={() => {
+                setProduct(emptyProduct);
+                imageResultRef.current = null;
+                openModal();
+              }}
+            >
+              Add Product
+            </Button>
+          }
+        >
+          {isLoading ? <SkeletonTable cols={6} rows={7} /> : <ProductsTable data={productData ?? []} onRefetch={refetch} />}
+        </ComponentCard>
       </div>
       <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
         <div className="relative w-full p-4 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-11">
@@ -163,10 +154,10 @@ export default function ProductsPage() {
                   />
                 </div>
                 <div>
-                  <Label>РќР°Р·РІР°РЅРёРµ (Р СѓСЃСЃРєРёР№)</Label>
+                  <Label>Nomi (Ruscha)</Label>
                   <Input
                     type="text"
-                    placeholder="Р’РІРµРґРёС‚Рµ РЅР°Р·РІР°РЅРёРµ РЅР° СЂСѓСЃСЃРєРѕРј"
+                    placeholder="Ruscha nomini kiriting"
                     value={Product.name_ru}
                     onChange={(e) => setProduct({ ...Product, name_ru: e.target.value })}
                   />

@@ -15,10 +15,10 @@ import ShopsTable, {
 import Select from "../../components/form/Select";
 import axiosClient from "../../service/axios.service";
 import { useFetchWithLoader } from "../../hooks/useFetchWithLoader";
-import { LoadSpinner } from "../../components/spinner/load-spinner";
+import { SkeletonTable } from "../../components/spinner/load-spinner";
 import { usePolling } from "../../hooks/usePolling";
 import ImageField, { ImageFieldResult } from "../../components/common/ImageField";
-import { toast } from "react-toastify";
+import { toast } from "../../components/ui/toast";
 
 export interface Shop {
   name?: string;
@@ -123,28 +123,21 @@ export default function ShopsPage() {
       <PageBreadcrumb pageTitle="Shops" />
 
       <div className="space-y-6">
-        {isLoading && (
-          <div className="min-h-[450px] flex-col flex justify-center">
-            <LoadSpinner />
-          </div>
-        )}
-        {!isLoading && shopData && (
-          <ComponentCard
-            title="Shops Table"
-            action={
-              <Button
-                size="sm"
-                variant="primary"
-                startIcon={<PlusIcon className="size-5 fill-white" />}
-                onClick={() => { setShopForm(emptyShop); imageResultRef.current = null; openModal(); }}
-              >
-                Add Shop
-              </Button>
-            }
-          >
-            <ShopsTable data={shopData} />
-          </ComponentCard>
-        )}
+        <ComponentCard
+          title="Shops Table"
+          action={
+            <Button
+              size="sm"
+              variant="primary"
+              startIcon={<PlusIcon className="size-5 fill-white" />}
+              onClick={() => { setShopForm(emptyShop); imageResultRef.current = null; openModal(); }}
+            >
+              Add Shop
+            </Button>
+          }
+        >
+          {isLoading ? <SkeletonTable cols={6} rows={7} /> : <ShopsTable data={shopData ?? []} onRefetch={refetch} />}
+        </ComponentCard>
       </div>
       <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
         <div className="relative w-full p-4 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-11">
@@ -212,4 +205,4 @@ export default function ShopsPage() {
       </Modal>
     </>
   );
-}
+}

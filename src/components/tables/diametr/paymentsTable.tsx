@@ -1,445 +1,176 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from "../../ui/table";
-
+﻿import TableActions from "./TableActions";
+import TableToolbar from "./TableToolbar";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../ui/table";
 import Moment from "moment";
-
-import Badge from "../../ui/badge/Badge";
 import Button from "../../ui/button/Button";
-import {
-  ArrowRightIcon,
-  CardIcon,
-  CashMoneyIcon,
-  CloseIcon,
-  CloseLineIcon,
-  CopyIcon,
-  DeleteIcon,
-  DownloadIcon,
-  EditIcon,
-  EyeCloseIcon,
-  EyeIcon,
-  PencilIcon,
-  PlusIcon,
-} from "../../../icons";
+import { DeleteIcon, EditIcon, DownloadIcon } from "../../../icons";
 import { useEffect, useState } from "react";
 import { useModal } from "../../../hooks/useModal";
 import Input from "../../form/input/InputField";
 import Label from "../../form/Label";
 import { Modal } from "../../ui/modal";
 import Select from "../../form/Select";
-import { Payment } from "../../../pages/diametr/Payments";
-import DropzoneComponent from "../../form/form-elements/DropZone";
-import FileInputExample from "../../form/form-elements/FileInputExample";
-import FileInput from "../../form/input/FileInput";
-import { formatMoney } from "../../../service/formatters/money.format";
+import axiosClient from "../../../service/axios.service";
+import { toast } from "../../ui/toast";
+import * as XLSX from "xlsx";
 
 export interface PaymentItemProps {
   id: number;
-  type: "Card" | "provider" | "Naxd";
-  subject: "Ad" | "Payment";
-  provider_name?: undefined | "uzum" | "click" | "payme";
-  price: number;
-  shop: string;
-  createdAt: string;
+  amount?: number;
+  type?: string;
+  start_date?: string;
+  end_date?: string;
+  image?: string;
+  shop?: { id: number; name?: string };
+  createdt?: string; createdAt?: string;
 }
 
-// Define the table data using the interface
-// const statictableData: Order[] = [
-//   {
-//     id: 1,
-//     merchant: {
-//       name: "Idea"
-//     },
-//     name: "Oq Tepa",
-//     image: "/images/new/idea.png",
-//     createdAt: new Date("2025-03-02"),
-//     region: "Toshkent sh",
-//     status: "Active",
-//   },
-//   {
-//     id: 2,
+const showOptions = [{ value: "10", label: "10" }, { value: "20", label: "20" }, { value: "50", label: "50" }];
+const typeOptions = [{ value: "CARD", label: "Karta" }, { value: "CASH", label: "Naqd" }, { value: "ONLINE", label: "Online" }];
+const emptyForm = { amount: "", type: "CARD", start_date: "", end_date: "" };
 
-//     name: "Mirobod",
-//     merchant: {
-//       name: "Idea"
-//     },
-//     region: "Toshkent sh",
-//     image: "/images/new/idea.png",
-//     createdAt: new Date("2025-03-02"),
-
-//     status: "Active",
-//   },
-
-//   {
-//     id: 3,
-//     merchant: {
-//       name: "MediaPark"
-//     },
-//     region: "Toshkent sh",
-//     name: "Chilonzor",
-//     image: "/images/new/media.png",
-//     createdAt: new Date("2025-03-02"),
-//     status: "Active",
-//   },
-
-//   {
-//     id: 4,
-//     merchant: {
-//       name: "MediaPark"
-//     },
-//     region: "Samarqand",
-//     name: "Shahrisabs",
-//     image: "/images/new/media.png",
-//     createdAt: new Date("2025-03-02"),
-//     status: "Active",
-//   },
-
-// ];
-
-export default function PaymentsTable({ data }: { data: PaymentItemProps[] }) {
-  const [tableData, settableData] = useState(data);
-
+export default function PaymentsTable({ data, onRefetch }: { data: PaymentItemProps[]; onRefetch?: () => void }) {
+  const [tableData, setTableData] = useState(data);
   const { isOpen, openModal, closeModal } = useModal();
-  const handleAdding = () => {
-    // Handle save logic here
-
-    console.log("handleAdding...");
-
-    closeModal();
-    setPayment(emptyPayment);
-  };
-  let emptyPayment: Payment = {
-    name: "",
-    image: "",
-  };
-  let [Payment, setPayment] = useState<Payment>(emptyPayment);
-
-  const options = [
-    { value: "5", label: "5" },
-    { value: "10", label: "10" },
-    { value: "20", label: "20" },
-  ];
-  let [optionValue, setoptionValue] = useState("5");
-
-
-  const handleSelectChange = (value: string) => {
-    setoptionValue(value);
-  };
-
-  // Pationation
-
+  const [editItem, setEditItem] = useState<PaymentItemProps | null>(null);
+  const [form, setForm] = useState({ ...emptyForm });
+  const [saving, setSaving] = useState(false);
+  const [optionValue, setOptionValue] = useState("10");
+  const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const maxPage = Math.ceil(tableData.length / +optionValue);
 
-  const startIndex = (currentPage - 1) * +optionValue;
-  const endIndex = startIndex + +optionValue;
-  let currentItems: PaymentItemProps[] = tableData.slice(startIndex, endIndex);
+  useEffect(() => { setTableData(data); setCurrentPage(1); }, [data]);
+  useEffect(() => { setCurrentPage(1); }, [optionValue]);
 
-  const goToPreviousPage = () => {
-    setCurrentPage((page) => Math.max(page - 1, 1));
+  const filteredData = search.trim() === "" ? tableData : tableData.filter((s) => { const q = search.toLowerCase(); return (s.shop?.name ?? "").toLowerCase().includes(q) || (s.type ?? "").toLowerCase().includes(q); });
+  const maxPage = Math.ceil(filteredData.length / +optionValue);
+  const currentItems = filteredData.slice((currentPage - 1) * +optionValue, currentPage * +optionValue);
+
+  const openEdit = (item: PaymentItemProps) => {
+    setEditItem(item);
+    setForm({
+      amount: item.amount != null ? String(item.amount) : "",
+      type: item.type ?? "CARD",
+      start_date: item.start_date ? Moment(item.start_date).format("YYYY-MM-DD") : "",
+      end_date: item.end_date ? Moment(item.end_date).format("YYYY-MM-DD") : "",
+    });
+    openModal();
   };
 
-  const goToNextPage = () => {
-    setCurrentPage((page) => Math.min(page + 1, maxPage));
-  };
-  console.log(">> data length :", tableData.length);
-
-  useEffect(() => {
-    const startIndex = (currentPage - 1) * +optionValue;
-    const endIndex = startIndex + +optionValue;
-    currentItems = tableData.slice(startIndex, endIndex);
-  }, [currentPage]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [optionValue]);
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      console.log("Selected file:", file.name);
-    }
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const payload: any = { type: form.type };
+      if (form.amount) payload.amount = Number(form.amount);
+      if (form.start_date) payload.start_date = form.start_date;
+      if (form.end_date) payload.end_date = form.end_date;
+      if (editItem) {
+        await axiosClient.put(`/payment/${editItem.id}`, payload);
+        toast.success("To'lov yangilandi");
+      }
+      onRefetch?.(); closeModal();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? "Xatolik yuz berdi");
+    } finally { setSaving(false); }
   };
 
-  const payment_options = [
-    { value: "Card", label: "Card" },
-    { value: "Naxd", label: "Naxd" },
-    
-  ];
+  const handleDelete = async (id: number) => {
+    try {
+      await axiosClient.delete(`/payment/${id}`);
+      toast.success("To'lov o'chirildi");
+      onRefetch?.();
+    } catch { toast.error("Xatolik yuz berdi"); }
+  };
 
-  const subject_options = [
-    { value: "Payment", label: "Payment" },
-    { value: "Ad", label: "Ad" },
-    
-  ];
+  const handleExport = () => {
+    const ws = XLSX.utils.json_to_sheet(tableData.map((p) => ({
+      ID: p.id, "Do'kon": p.shop?.name ?? "", Summa: p.amount ?? 0, Turi: p.type ?? "",
+      "Boshlanish": p.start_date ? Moment(p.start_date).format("DD.MM.YYYY") : "",
+      "Tugash": p.end_date ? Moment(p.end_date).format("DD.MM.YYYY") : "",
+      Yaratilgan: Moment(p.createdAt).format("DD.MM.YYYY"),
+    })));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Payments");
+    XLSX.writeFile(wb, `payments-${Moment().format("YYYY-MM-DD")}.xlsx`);
+  };
 
-    const shop_options = [
-    { value: "Shohruh Market", label: "Shohruh Market" },
-    { value: "Farhod Qurilish mchj", label: "Farhod Qurilish mchj" },
-    
-  ];
-
+  const typeLabel = (t?: string) => typeOptions.find((o) => o.value === t)?.label ?? t ?? "-";
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
       <div className="max-w-full overflow-x-auto">
-        <div className="px-5 py-3  flex flex-row justify-between items-center border-b border-gray-100 dark:border-white/[0.05]">
-          <div className="flex flex-row items-center gap-2 text-theme-sm font-medium text-gray-500 text-start  dark:text-gray-400">
-            <span>Show</span>
-
-            <Select
-              options={options}
-              onChange={handleSelectChange}
-              className="dark:bg-dark-900"
-              defaultValue="5"
-            />
-            <span>entries</span>
-          </div>
-          <div>
-            {" "}
-            <Button
-              size="sm"
-              variant="outline"
-              endIcon={<DownloadIcon className="size-5 fill-white" />}
-            >
-              Download
-            </Button>
-          </div>
-        </div>
+        <TableToolbar search={search} onSearch={(v) => { setSearch(v); setCurrentPage(1); }} searchPlaceholder="Qidirish..." showValue={optionValue} onShowChange={(v) => { setOptionValue(v); setCurrentPage(1); }} onExport={handleExport} />
         <Table>
-          {/* Table Header */}
-          <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
+          <TableHeader>
             <TableRow>
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400"
-              >
-                ID
-              </TableCell>
-
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Provider
-              </TableCell>
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Amount
-              </TableCell>
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Shop
-              </TableCell>
-
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Added
-              </TableCell>
-
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Actions
-              </TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">#</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Do'kon</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Summa</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Turi</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Boshlanish</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Tugash</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Amallar</TableCell>
             </TableRow>
           </TableHeader>
-
-          {/* Table Body */}
-          <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-            {currentItems.map((order, index) => (
-              <TableRow key={index}>
-                <TableCell className="px-4 py-3 text-gray-500 text-center text-theme-sm dark:text-gray-400">
-                  {order.id}
+          <TableBody>
+            {currentItems.length === 0 ? (
+              <TableRow><TableCell colSpan={7} className="py-8 text-center text-gray-400">Ma'lumot yo'q</TableCell></TableRow>
+            ) : currentItems.map((item, idx) => (
+              <TableRow key={item.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+                <TableCell className="px-5 py-4 text-sm text-gray-600 dark:text-gray-400">{(currentPage - 1) * +optionValue + idx + 1}</TableCell>
+                <TableCell className="px-5 py-4 font-medium text-gray-800 dark:text-white">{item.shop?.name ?? "-"}</TableCell>
+                <TableCell className="px-5 py-4 text-sm font-semibold text-green-600 dark:text-green-400">
+                  {item.amount != null ? `${item.amount.toLocaleString()} so'm` : "-"}
                 </TableCell>
-                <TableCell className="px-5 py-4 sm:px-6 text-start">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 overflow-hidden rounded-sm ">
-                      {order.type == "provider" ? (
-                        <img
-                          width={50}
-                          height={50}
-                          src={`/images/payments/${order.provider_name}.png`}
-                          alt={order.provider_name}
-                        />
-                      ) : order.type == "Card" ? (
-                        <CardIcon className="w-10 h-10  text-brand-500 bg-brand-50 dark:bg-brand-500/[0.12] dark:text-brand-400 p-1 " />
-                      ) : (
-                        <CashMoneyIcon className="w-10 h-10  text-brand-500 bg-brand-50 dark:bg-brand-500/[0.12] dark:text-brand-400 p-1 " />
-                      )}
-                    </div>
-                      <div>
-                      <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
-                        { order.provider_name ?? order.type}
-                      </span>
-                    </div>
-                  </div>
+                <TableCell className="px-5 py-4 text-sm">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.type === "CASH" ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" : item.type === "ONLINE" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" : "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"}`}>
+                    {typeLabel(item.type)}
+                  </span>
                 </TableCell>
-
-                <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                  {formatMoney(order.price)}
-                </TableCell>
-                  <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                  <div className="flex flex-col items-start">
-                    <span className="block">{order.shop}</span>
-                    <span className="block text-gray-400 text-start text-theme-sm dark:text-gray-300"># {order.subject}</span>
-                  </div>
-                </TableCell>
-
-                <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                  {Moment(order.createdAt).format("HH:mm - MMMM DD, yyyy")}
-                </TableCell>
-
-                <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400 flex gap-2  flex-row items-center">
-                  <Button
-                    size="mini"
-                    variant="outline"
-                    className="text-xl fill-gray-500 dark:fill-gray-400"
-                    onClick={() => {
-                      setPayment({
-                        image: "",
-                      });
-                      openModal();
-                    }}
-                  >
-                    <PencilIcon></PencilIcon>
-                  </Button>
-
-                  <Button
-                    size="mini"
-                    variant="outline"
-                    onClick={async () => {}}
-                  >
-                    <DeleteIcon className="text-xl fill-gray-500 dark:fill-gray-400"></DeleteIcon>
-                  </Button>
+                <TableCell className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400">{item.start_date ? Moment(item.start_date).format("DD.MM.YYYY") : "-"}</TableCell>
+                <TableCell className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400">{item.end_date ? Moment(item.end_date).format("DD.MM.YYYY") : "-"}</TableCell>
+                <TableCell className="px-5 py-4">
+                  <TableActions onEdit={() => openEdit(item)} onDelete={() => handleDelete(item.id)} />
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-      </div>
-
-      <div className="px-5 py-3 gap-3 flex flex-col md:flex-row justify-between md:items-center border-t border-gray-100 dark:border-white/[0.05] text-theme-sm font-medium text-gray-500  dark:text-gray-400">
-        <div className="flex flex-row items-center gap-2  text-start  ">
-          <Button
-            size="sm"
-            variant="outline"
-            className="w-10 h-10"
-            disabled={currentPage === 1}
-            onClick={goToPreviousPage}
-          >
-            <ArrowRightIcon className="rotate-180 fill-gray-500  dark:fill-gray-400 scale-200" />
-          </Button>
-
-          {[...Array(maxPage)].map((_, i) => (
-            <Button
-              size="sm"
-              variant={currentPage === i + 1 ? "primary" : "outline"}
-              className="w-10 h-10"
-              disabled={false}
-              key={i}
-              onClick={() => {
-                currentPage !== i + 1 && setCurrentPage(i + 1);
-              }}
-            >
-              {i + 1}
-            </Button>
-          ))}
-
-          <Button
-            size="sm"
-            variant="outline"
-            className="w-10 h-10"
-            disabled={currentPage === maxPage}
-            onClick={goToNextPage}
-          >
-            <ArrowRightIcon className=" fill-gray-500  dark:fill-gray-400 scale-200" />
-          </Button>
-        </div>
-        <div>
-          Showing {(currentPage - 1) * +optionValue + 1} to{" "}
-          {Math.min(data.length, currentPage * +optionValue)} of {data.length}{" "}
-          entries
-        </div>
-      </div>
-
-      <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
-        <div className="relative w-full p-4 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-11">
-          <div className="px-2 pr-14">
-            <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-              Edit Payment
-            </h4>
-            <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-              Update Payment with full details.
-            </p>
+        <div className="px-5 py-3 flex justify-between items-center border-t border-gray-100 dark:border-white/[0.05]">
+          <span className="text-sm text-gray-500 dark:text-gray-400">{tableData.length} ta ichidan {Math.min((currentPage-1)*+optionValue+1,tableData.length)}–{Math.min(currentPage*+optionValue,tableData.length)} ko'rsatilmoqda</span>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" disabled={currentPage<=1} onClick={()=>setCurrentPage(p=>p-1)}>Oldingi</Button>
+            <Button size="sm" variant="outline" disabled={currentPage>=maxPage} onClick={()=>setCurrentPage(p=>p+1)}>Keyingi</Button>
           </div>
-          <form className="flex flex-col">
-            <div className="px-2 overflow-y-auto custom-scrollbar">
-              <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-                <div>
-                  <Label>Type</Label>
-                  <Select
-                    options={payment_options}
-                    className="dark:bg-dark-900"
-                    placeholder="To'lov turini tanlang"
-                    onChange={() => {}}
-                  />
-                </div>
-
-                   <div>
-                  <Label>Shop</Label>
-                  <Select
-                    options={shop_options}
-                    className="dark:bg-dark-900"
-                    placeholder="Do'konni tanlang"
-                    onChange={() => {}}
-                  />
-                </div>
-
-                <div>
-                  <Label>Price</Label>
-                  <Input type="text" />
-                </div>
-                  <div>
-                  <Label>Subject</Label>
-                  <Select
-                    options={subject_options}
-                    className="dark:bg-dark-900"
-                    placeholder="To'lov sababini ko'rsating"
-                    onChange={() => {}}
-                  />
-                </div>
-
-                {/* 
-                <div>
-                  <Label>Image</Label>
-                  <FileInput
-                    onChange={handleFileChange}
-                    className="custom-class"
-                  />
-                </div> */}
-              </div>
+        </div>
+      </div>
+      <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[500px] m-4">
+        <div className="relative w-full p-4 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-8">
+          <div className="px-2 pr-14 mb-6">
+            <h4 className="text-xl font-semibold text-gray-800 dark:text-white">To'lovni tahrirlash</h4>
+          </div>
+          <div className="flex flex-col gap-4 px-2">
+            <div>
+              <Label>Summa</Label>
+              <Input type="number" placeholder="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
             </div>
-            <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
-              <Button size="sm" variant="outline" onClick={closeModal}>
-                Close
-              </Button>
-              <Button size="sm" onClick={handleAdding}>
-                Saves
-              </Button>
+            <div>
+              <Label>To'lov turi</Label>
+              <Select options={typeOptions} defaultValue={form.type} onChange={(v) => setForm({ ...form, type: v })} />
             </div>
-          </form>
+            <div>
+              <Label>Boshlanish sanasi</Label>
+              <Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
+            </div>
+            <div>
+              <Label>Tugash sanasi</Label>
+              <Input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
+            </div>
+          </div>
+          <div className="flex items-center gap-3 px-2 mt-6 justify-end">
+            <Button size="sm" variant="outline" onClick={closeModal}>Bekor qilish</Button>
+            <Button size="sm" onClick={handleSave} disabled={saving}>{saving ? "Saqlanmoqda..." : "Saqlash"}</Button>
+          </div>
         </div>
       </Modal>
     </div>

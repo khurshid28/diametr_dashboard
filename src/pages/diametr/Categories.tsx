@@ -12,7 +12,7 @@ import { useCallback, useRef, useState } from "react";
 
 import axiosClient from "../../service/axios.service";
 import { useFetchWithLoader } from "../../hooks/useFetchWithLoader";
-import { LoadSpinner } from "../../components/spinner/load-spinner";
+import { SkeletonTable } from "../../components/spinner/load-spinner";
 import { usePolling } from "../../hooks/usePolling";
 import CategorysTable, {
   CategoryItemProps,
@@ -96,34 +96,25 @@ export default function CategorysPage() {
       <PageBreadcrumb pageTitle="Categorys" />
 
       <div className="space-y-6 ">
-        {isLoading && (
-          <div className="min-h-[450px] flex-col flex justify-center">
-            <LoadSpinner />
-          </div>
-        )}
-        {!isLoading && categoryData && (
-          <ComponentCard
-            title="Categorys Table"
-            action={
-              <>
-                <Button
-                  size="sm"
-                  variant="primary"
-                  startIcon={<PlusIcon className="size-5 fill-white" />}
-                  onClick={() => {
-                    setCategory(emptyCategory);
-                    imageResultRef.current = null;
-                    openModal();
-                  }}
-                >
-                  Add Category
-                </Button>
-              </>
-            }
-          >
-            <CategorysTable data={categoryData} />
-          </ComponentCard>
-        )}
+        <ComponentCard
+          title="Categorys Table"
+          action={
+            <Button
+              size="sm"
+              variant="primary"
+              startIcon={<PlusIcon className="size-5 fill-white" />}
+              onClick={() => {
+                setCategory(emptyCategory);
+                imageResultRef.current = null;
+                openModal();
+              }}
+            >
+              Add Category
+            </Button>
+          }
+        >
+          {isLoading ? <SkeletonTable cols={5} rows={7} /> : <CategorysTable data={categoryData ?? []} onRefetch={refetch} />}
+        </ComponentCard>
       </div>
       <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
         <div className="relative w-full p-4 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-11">
@@ -150,10 +141,10 @@ export default function CategorysPage() {
                   />
                 </div>
                 <div>
-                  <Label>РќР°Р·РІР°РЅРёРµ (Р СѓСЃСЃРєРёР№)</Label>
+                  <Label>Nomi (Ruscha)</Label>
                   <Input
                     type="text"
-                    placeholder="Р’РІРµРґРёС‚Рµ РЅР°Р·РІР°РЅРёРµ РЅР° СЂСѓСЃСЃРєРѕРј"
+                    placeholder="Ruscha nomini kiriting"
                     value={Category.name_ru}
                     onChange={(e) =>
                       setCategory({ ...Category, name_ru: e.target.value })

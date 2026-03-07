@@ -17,18 +17,21 @@ export default function AuthLayout({
             {/* <!-- ===== Common Grid Shape Start ===== --> */}
             <GridShape />
             <div className="flex flex-col items-center max-w-xs">
-              <Link to="/" className="block mb-4">
+              <Link to="/" className="block mb-6">
                 <img
                   width={120}
                   height={48}
-                  
                   src="/images/logo.svg"
                   alt="Logo"
                 />
               </Link>
-              <p className="text-center text-gray-400 dark:text-white/60">
-                Welcome Diametr Dashboard
-              </p>
+              <div className="mb-3 px-4 py-1.5 rounded-full bg-white/10 border border-white/20">
+                <span className="text-xs font-semibold text-white/80 uppercase tracking-widest">Super Admin Panel</span>
+              </div>
+              <h2 className="mb-2 text-xl font-bold text-white text-center">
+                Diametr Boshqaruv Tizimi
+              </h2>
+
             </div>
           </div>
         </div>

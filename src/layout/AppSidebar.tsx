@@ -1,142 +1,98 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 
-// Assume these icons are imported from an icon library
 import {
   BoxCubeIcon,
-  CalenderIcon,
   ChevronDownIcon,
   GridIcon,
   HorizontaLDots,
-  ListIcon,
-  PageIcon,
   PieChartIcon,
-  PlugInIcon,
-  TableIcon,
   UserCircleIcon,
-  StarHexaIcon,
   ShootingStarIcon,
-  PaperPlaneIcon,
-  SettingsIcon,
-  CheckCircleIcon,
-  DocsIcon,
-  BoxIcon,
-  FolderIcon,
-  GroupIcon,
-  BoltIcon,
-  EnvelopeIcon,
-  ChatIcon,
-  TaskIcon,
-  ArrowRightIcon,
-  FileIcon,
-  BoxIconLine,
-  TimeIcon,
-  DollarLineIcon,
-  MailIcon,
-  UserIcon,
+  CardIcon,
   ShopIcon,
   CategoryIcon,
   NewsIcon,
   ServiceIcon,
   WorkerIcon,
   AdIcon,
-  CardIcon,
   LocationsIcon,
   SaleIcon,
   CopyIcon,
+  GroupIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 import SidebarWidget from "./SidebarWidget";
 
-type NavItem = {
+interface NavItem {
   name: string;
   icon: React.ReactNode;
-  path?: string;
-  subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
-};
+  path: string;
+}
 
-const navItems: NavItem[] = [
+interface SidebarGroup {
+  label: string;
+  key: string;
+  items: NavItem[];
+}
+
+const SIDEBAR_GROUPS: SidebarGroup[] = [
   {
-    icon: <GridIcon />,
-    name: "Dashboard",
-
-    subItems: [
-      {
-        name: "Statistics",
-        path: "/",
-      },
+    label: "Asosiy",
+    key: "main",
+    items: [
+      { icon: <GridIcon />,      name: "Dashboard",  path: "/" },
+      { icon: <PieChartIcon />,  name: "Analitika",  path: "/analytics" },
     ],
   },
   {
-    icon: <ShopIcon />,
-    name: "Shops",
-    path: "/shops",
+    label: "Katalog",
+    key: "catalog",
+    items: [
+      { icon: <CategoryIcon />, name: "Kategoriyalar", path: "/categories" },
+      { icon: <BoxCubeIcon />,  name: "Mahsulotlar",   path: "/products" },
+    ],
   },
-
-   {
-    icon: <CategoryIcon />,
-    name: "Categories",
-    path: "/categories",
-  },
-
-   {
-    icon: <BoxCubeIcon />,
-    name: "Products",
-    path: "/products",
-  },
-
-
-    {
-    icon: <CardIcon />,
-    name: "Payments",
-    path: "/payments",
-  },
-
-   {
-    icon: < NewsIcon/>,
-    name: "News",
-    path: "/news",
-  },
-
-   {
-    icon: <AdIcon />,
-    name: "Ads",
-    path: "/ads",
-  },
-
-    {
-    icon: <ServiceIcon />,
-    name: "Services",
-    path: "/services",
-  },
-
-    {
-    icon: <WorkerIcon />,
-    name: "Workers",
-    path: "/workers",
-  },
-   {
-    icon: <LocationsIcon />,
-    name: "Regions",
-    path: "/regions",
-  },
-
-   {
-    icon: <SaleIcon />,
-    name: "Sales",
-    path: "/sales",
-  },
-
   {
-    icon: <CopyIcon />,
-    name: "Promo Kodlar",
-    path: "/promo-codes",
+    label: "Do'konlar",
+    key: "shops",
+    items: [
+      { icon: <ShopIcon />,      name: "Do'konlar",  path: "/shops" },
+      { icon: <LocationsIcon />, name: "Viloyatlar", path: "/regions" },
+    ],
   },
-
   {
-    icon: <PieChartIcon />,
-    name: "Analitika",
-    path: "/analytics",
+    label: "Xizmatlar",
+    key: "services",
+    items: [
+      { icon: <ServiceIcon />, name: "Xizmatlar", path: "/services" },
+      { icon: <WorkerIcon />,  name: "Ustalar",   path: "/workers" },
+    ],
+  },
+  {
+    label: "Sotish",
+    key: "sales",
+    items: [
+      { icon: <SaleIcon />,  name: "Buyurtmalar",  path: "/sales" },
+      { icon: <CardIcon />,  name: "To'lovlar",    path: "/payments" },
+      { icon: <CopyIcon />,  name: "Promo Kodlar", path: "/promo-codes" },
+    ],
+  },
+  {
+    label: "Kontent",
+    key: "content",
+    items: [
+      { icon: <NewsIcon />, name: "Yangiliklar", path: "/news" },
+      { icon: <AdIcon />,   name: "Reklamalar",  path: "/ads" },
+    ],
+  },
+  {
+    label: "Boshqaruv",
+    key: "management",
+    items: [
+      { icon: <GroupIcon />,      name: "Foydalanuvchilar", path: "/users" },
+      { icon: <UserCircleIcon />, name: "Do'kon Adminlari", path: "/admins" },
+    ],
   },
 ];
 
@@ -144,278 +100,144 @@ const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const location = useLocation();
 
-  const [openSubmenu, setOpenSubmenu] = useState<{
-    type: "main" | "others";
-    index: number;
-  } | null>(null);
-  const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>(
-    {}
+  // All groups open by default
+  const [openGroups, setOpenGroups] = useState<Set<string>>(
+    () => new Set(SIDEBAR_GROUPS.map((g) => g.key))
   );
-  const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // const isActive = (path: string) => location.pathname === path;
   const isActive = useCallback(
     (path: string) => location.pathname === path,
     [location.pathname]
   );
 
-  // useEffect(() => {
-  //   let submenuMatched = false;
-  //   ["main", "others"].forEach((menuType) => {
-  //     const items = menuType === "main" ? navItems : othersItems;
-  //     items.forEach((nav, index) => {
-  //       if (nav.subItems) {
-  //         nav.subItems.forEach((subItem) => {
-  //           if (isActive(subItem.path)) {
-  //             setOpenSubmenu({
-  //               type: menuType as "main" | "others",
-  //               index,
-  //             });
-  //             submenuMatched = true;
-  //           }
-  //         });
-  //       }
-  //     });
-  //   });
-
-  //   if (!submenuMatched) {
-  //     setOpenSubmenu(null);
-  //   }
-  // }, [location, isActive]);
-
-  useEffect(() => {
-    if (openSubmenu !== null) {
-      const key = `${openSubmenu.type}-${openSubmenu.index}`;
-      if (subMenuRefs.current[key]) {
-        setSubMenuHeight((prevHeights) => ({
-          ...prevHeights,
-          [key]: subMenuRefs.current[key]?.scrollHeight || 0,
-        }));
-      }
-    }
-  }, [openSubmenu]);
-
-  const handleSubmenuToggle = (index: number, menuType: "main" | "others") => {
-    setOpenSubmenu((prevOpenSubmenu) => {
-      if (
-        prevOpenSubmenu &&
-        prevOpenSubmenu.type === menuType &&
-        prevOpenSubmenu.index === index
-      ) {
-        return null;
-      }
-      return { type: menuType, index };
+  const toggleGroup = (key: string) => {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
     });
   };
 
-  const renderMenuItems = (items: NavItem[], menuType: "main" | "others") => (
-    <ul className="flex flex-col gap-4">
-      {items.map((nav, index) => (
-        <li key={nav.name}>
-          {nav.subItems ? (
-            <button
-              onClick={() => handleSubmenuToggle(index, menuType)}
-              className={`menu-item group ${
-                openSubmenu?.type === menuType && openSubmenu?.index === index
-                  ? "menu-item-active"
-                  : "menu-item-inactive"
-              } cursor-pointer ${
-                !isExpanded && !isHovered
-                  ? "lg:justify-center"
-                  : "lg:justify-start"
-              }`}
-            >
-              <span
-                className={`menu-item-icon-size  ${
-                  openSubmenu?.type === menuType && openSubmenu?.index === index
-                    ? "menu-item-icon-active"
-                    : "menu-item-icon-inactive"
-                }`}
-              >
-                {nav.icon}
-              </span>
-              {(isExpanded || isHovered || isMobileOpen) && (
-                <span className="menu-item-text">{nav.name}</span>
-              )}
-              {(isExpanded || isHovered || isMobileOpen) && (
-                <ChevronDownIcon
-                  className={`ml-auto w-5 h-5 transition-transform duration-200 ${
-                    openSubmenu?.type === menuType &&
-                    openSubmenu?.index === index
-                      ? "rotate-180 text-brand-500"
-                      : ""
-                  }`}
-                />
-              )}
-            </button>
-          ) : (
-            nav.path && (
-              <Link
-                to={nav.path}
-                className={`menu-item group ${
-                  isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
-                }`}
-              >
-                <span
-                  className={`menu-item-icon-size ${
-                    isActive(nav.path)
-                      ? "menu-item-icon-active"
-                      : "menu-item-icon-inactive"
-                  }`}
-                >
-                  {nav.icon}
-                </span>
-                {(isExpanded || isHovered || isMobileOpen) && (
-                  <span className="menu-item-text">{nav.name}</span>
-                )}
-              </Link>
-            )
-          )}
-          {nav.subItems && (isExpanded || isHovered || isMobileOpen) && (
-            <div
-              ref={(el) => {
-                subMenuRefs.current[`${menuType}-${index}`] = el;
-              }}
-              className="overflow-hidden transition-all duration-300"
-              style={{
-                height:
-                  openSubmenu?.type === menuType && openSubmenu?.index === index
-                    ? `${subMenuHeight[`${menuType}-${index}`]}px`
-                    : "0px",
-              }}
-            >
-              <ul className="mt-2 space-y-1 ml-9">
-                {nav.subItems.map((subItem) => (
-                  <li key={subItem.name}>
-                    <Link
-                      to={subItem.path}
-                      className={`menu-dropdown-item ${
-                        isActive(subItem.path)
-                          ? "menu-dropdown-item-active"
-                          : "menu-dropdown-item-inactive"
-                      }`}
-                    >
-                      {subItem.name}
-                      <span className="flex items-center gap-1 ml-auto">
-                        {subItem.new && (
-                          <span
-                            className={`ml-auto ${
-                              isActive(subItem.path)
-                                ? "menu-dropdown-badge-active"
-                                : "menu-dropdown-badge-inactive"
-                            } menu-dropdown-badge`}
-                          >
-                            new
-                          </span>
-                        )}
-                        {subItem.pro && (
-                          <span
-                            className={`ml-auto ${
-                              isActive(subItem.path)
-                                ? "menu-dropdown-badge-active"
-                                : "menu-dropdown-badge-inactive"
-                            } menu-dropdown-badge`}
-                          >
-                            pro
-                          </span>
-                        )}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </li>
-      ))}
-    </ul>
-  );
+  const showText = isExpanded || isHovered || isMobileOpen;
 
   return (
     <aside
-      className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
-        ${
-          isExpanded || isMobileOpen
-            ? "w-[290px]"
-            : isHovered
-            ? "w-[290px]"
-            : "w-[90px]"
-        }
+      className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200
+        ${isExpanded || isMobileOpen ? "w-[310px]" : isHovered ? "w-[310px]" : "w-[90px]"}
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0`}
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div
-        className={`py-8 flex ${
-          !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
-        }`}
-      >
+      {/* Logo */}
+      <div className={`py-6 flex ${!showText ? "lg:justify-center" : "justify-start"}`}>
         <Link to="/">
-          {isExpanded || isHovered || isMobileOpen ? (
-            <div className="flex flex-row gap-4 items-center">
-              <img
-                className="dark:hidden "
-                src="/images/logo_long.png"
-                alt="Logo"
-                width={160}
-              />
-              <img
-                className="hidden dark:block "
-                src="/images/logo_long.png"
-                alt="Logo"
-                width={160}
-              />
-              {/* <p className="text-center font-medium  text-theme-md hover:text-gray-900   dark:text-white">
-                Diametr
-              </p> */}
-            </div>
-          ) : (
-            <img src="/images/logo.svg" alt="Logo" width={45} height={45} />
-          )}
+          <div
+            className="relative flex items-center justify-center overflow-hidden flex-shrink-0"
+            style={{
+              width: showText ? 52 : 46,
+              height: showText ? 52 : 46,
+              background: 'linear-gradient(140deg, rgba(0,196,140,0.18) 0%, rgba(0,20,12,0.96) 100%)',
+              boxShadow: '0 0 0 1.5px rgba(0,196,140,0.30), 0 0 24px 4px rgba(0,196,140,0.16), 0 4px 16px rgba(0,0,0,0.35)',
+              borderRadius: 14,
+              transition: 'width 0.3s, height 0.3s',
+            }}
+          >
+            {/* Corner shine */}
+            <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.10) 0%, transparent 45%)', borderRadius: 14 }} />
+            {/* Shimmer sweep */}
+            <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(108deg, transparent 15%, rgba(255,255,255,0.30) 48%, rgba(200,255,240,0.15) 52%, transparent 85%)', animation: 'splashShimmer 2.8s 0.4s ease-in-out infinite', borderRadius: 14, zIndex: 3 }} />
+            <img
+              src="/images/logo.png"
+              alt="Diametr"
+              className="object-contain"
+              style={{ width: showText ? 34 : 28, height: showText ? 34 : 28, filter: 'brightness(0) invert(1) drop-shadow(0 0 6px rgba(0,196,140,0.8))', position: 'relative', zIndex: 4, transition: 'width 0.3s, height 0.3s' }}
+            />
+          </div>
         </Link>
       </div>
-      <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
+
+      {/* Nav */}
+      <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar flex-1">
         <nav className="mb-6">
-          <div className="flex flex-col gap-4">
-            <div>
-              <h2
-                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
-                  !isExpanded && !isHovered
-                    ? "lg:justify-center"
-                    : "justify-start"
-                }`}
-              >
-                {isExpanded || isHovered || isMobileOpen ? (
-                  "Menu"
-                ) : (
-                  <HorizontaLDots className="size-6" />
-                )}
-              </h2>
-              {renderMenuItems(navItems, "main")}
+          {/* Section header in collapsed mode */}
+          {!showText && (
+            <div className="flex justify-center mb-4">
+              <HorizontaLDots className="size-8 text-gray-400" />
             </div>
-            {/* <div className="">
-              <h2
-                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
-                  !isExpanded && !isHovered
-                    ? "lg:justify-center"
-                    : "justify-start"
-                }`}
-              >
-                {isExpanded || isHovered || isMobileOpen ? (
-                  "Others"
-                ) : (
-                  <HorizontaLDots />
-                )}
-              </h2>
-              {renderMenuItems(othersItems, "others")}
-            </div> */}
+          )}
+
+          <div className="flex flex-col gap-1">
+            {SIDEBAR_GROUPS.map((group) => {
+              const isOpen = openGroups.has(group.key);
+              return (
+                <div key={group.key}>
+                  {/* Group header вЂ” only in expanded mode */}
+                  {showText && (
+                    <button
+                      onClick={() => toggleGroup(group.key)}
+                      className="w-full flex items-center justify-between px-4 py-[11px] mt-2 mb-0.5
+                                 text-[17px] font-semibold tracking-wider uppercase
+                                 text-gray-400 dark:text-gray-500
+                                 hover:text-gray-600 dark:hover:text-gray-400
+                                 transition-colors group"
+                    >
+                      <span>{group.label}</span>
+                      <ChevronDownIcon
+                        className={`w-5 h-5 transition-transform duration-200 ${isOpen ? "" : "-rotate-90"}`}
+                      />
+                    </button>
+                  )}
+
+                  {/* Items */}
+                  <div
+                    className="overflow-hidden transition-all duration-250 ease-in-out"
+                    style={{
+                      maxHeight: !showText ? "999px" : isOpen ? "999px" : "0px",
+                    }}
+                  >
+                    <ul className="flex flex-col gap-0.5">
+                      {group.items.map((item) => {
+                        const active = isActive(item.path);
+                        return (
+                          <li key={item.path}>
+                            <Link
+                              to={item.path}
+                              className={`flex items-center gap-3 px-3 py-[9px] rounded-xl text-[14px] font-medium transition-all duration-150
+                                ${!showText ? "lg:justify-center" : ""}
+                                ${active
+                                  ? "bg-brand-500/10 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400"
+                                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.05] hover:text-gray-900 dark:hover:text-gray-200"
+                                }`}
+                            >
+                              <span
+                                className={`flex-shrink-0 w-[22px] h-[22px] flex items-center justify-center [&>svg]:w-full [&>svg]:h-full
+                                  ${active ? "text-brand-500 dark:text-brand-400" : "text-gray-500 dark:text-gray-400"}`}
+                              >
+                                {item.icon}
+                              </span>
+                              {showText && <span>{item.name}</span>}
+                              {active && showText && (
+                                <span className="ml-auto w-2 h-2 rounded-full bg-brand-500" />
+                              )}
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </nav>
-        {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null}
+
+        {showText && <SidebarWidget />}
       </div>
     </aside>
   );
 };
 
 export default AppSidebar;
+

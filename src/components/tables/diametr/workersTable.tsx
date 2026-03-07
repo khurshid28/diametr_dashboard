@@ -1,468 +1,179 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from "../../ui/table";
-
+﻿import TableActions from "./TableActions";
+import TableToolbar from "./TableToolbar";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../ui/table";
 import Moment from "moment";
-
 import Button from "../../ui/button/Button";
-import {
-  ArrowRightIcon,
-  BoxCubeIcon,
-  CloseIcon,
-  CloseLineIcon,
-  CopyIcon,
-  DeleteIcon,
-  DownloadIcon,
-  EditIcon,
-  EyeCloseIcon,
-  EyeIcon,
-  PaperPlaneIcon,
-  PencilIcon,
-  PlusIcon,
-} from "../../../icons";
+import { DeleteIcon, EditIcon, DownloadIcon } from "../../../icons";
 import { useEffect, useState } from "react";
 import { useModal } from "../../../hooks/useModal";
 import Input from "../../form/input/InputField";
 import Label from "../../form/Label";
 import { Modal } from "../../ui/modal";
 import Select from "../../form/Select";
-import DropzoneComponent from "../../form/form-elements/DropZone";
-import FileInputExample from "../../form/form-elements/FileInputExample";
-import FileInput from "../../form/input/FileInput";
-import Badge from "../../ui/badge/Badge";
-import { Worker } from "../../../pages/diametr/Workers";
+import axiosClient from "../../../service/axios.service";
+import { toast } from "../../ui/toast";
+import * as XLSX from "xlsx";
 
 export interface WorkerItemProps {
   id: number;
-  name: string;
-  phone: string;
-  image: string;
-  service: string;
-  createdAt: string;
- 
+  fullname?: string;
+  phone?: string;
+  image?: string;
+  expired?: string;
+  service?: { id: number; name?: string };
+  serviceId?: number;
+  createdt?: string; createdAt?: string;
 }
 
-// Define the table data using the interface
-// const statictableData: Order[] = [
-//   {
-//     id: 1,
-//     merchant: {
-//       name: "Idea"
-//     },
-//     name: "Oq Tepa",
-//     image: "/images/Worker/idea.png",
-//     createdAt: Worker Date("2025-03-02"),
-//     region: "Toshkent sh",
-//     status: "Active",
-//   },
-//   {
-//     id: 2,
+const showOptions = [{ value: "10", label: "10" }, { value: "20", label: "20" }, { value: "50", label: "50" }];
+const emptyForm = { fullname: "", phone: "", service_id: "", expired: "" };
 
-//     name: "Mirobod",
-//     merchant: {
-//       name: "Idea"
-//     },
-//     region: "Toshkent sh",
-//     image: "/images/Worker/idea.png",
-//     createdAt: Worker Date("2025-03-02"),
-
-//     status: "Active",
-//   },
-
-//   {
-//     id: 3,
-//     merchant: {
-//       name: "MediaPark"
-//     },
-//     region: "Toshkent sh",
-//     name: "Chilonzor",
-//     image: "/images/Worker/media.png",
-//     createdAt: Worker Date("2025-03-02"),
-//     status: "Active",
-//   },
-
-//   {
-//     id: 4,
-//     merchant: {
-//       name: "MediaPark"
-//     },
-//     region: "Samarqand",
-//     name: "Shahrisabs",
-//     image: "/images/Worker/media.png",
-//     createdAt: Worker Date("2025-03-02"),
-//     status: "Active",
-//   },
-
-// ];
-
-export default function WorkersTable({ data }: { data: WorkerItemProps[] }) {
-  const [tableData, settableData] = useState(data);
-
+export default function WorkersTable({ data, onRefetch }: { data: WorkerItemProps[]; onRefetch?: () => void }) {
+  const [tableData, setTableData] = useState(data);
   const { isOpen, openModal, closeModal } = useModal();
-  const handleWorkerding = () => {
-    // Handle save logic here
-
-    console.log("handleWorkerding...");
-
-    closeModal();
-    setWorker(emptyWorker);
-  };
-  let emptyWorker: Worker = {
-    name : "",
-    phone : "",
-    service :""
-  };
-  let [Worker, setWorker] = useState<Worker>(emptyWorker);
-
-  const options = [
-    { value: "5", label: "5" },
-    { value: "10", label: "10" },
-    { value: "20", label: "20" },
-  ];
-  let [optionValue, setoptionValue] = useState("5");
-
-  let [percent, setPercent] = useState("38");
-
-  let [percent_type, setPercentType] = useState("OUT");
-
-  const handleSelectChange = (value: string) => {
-    setoptionValue(value);
-  };
-
-  // Pationation
-
+  const [editItem, setEditItem] = useState<WorkerItemProps | null>(null);
+  const [form, setForm] = useState({ ...emptyForm });
+  const [saving, setSaving] = useState(false);
+  const [optionValue, setOptionValue] = useState("10");
+  const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const maxPage = Math.ceil(tableData.length / +optionValue);
+  const [serviceOptions, setServiceOptions] = useState<{ value: string; label: string }[]>([]);
 
-  const startIndex = (currentPage - 1) * +optionValue;
-  const endIndex = startIndex + +optionValue;
-  let currentItems: WorkerItemProps[] = tableData.slice(startIndex, endIndex);
-
-  const goToPreviousPage = () => {
-    setCurrentPage((page) => Math.max(page - 1, 1));
-  };
-
-  const goToNextPage = () => {
-    setCurrentPage((page) => Math.min(page + 1, maxPage));
-  };
-  console.log(">> data length :", tableData.length);
-
+  useEffect(() => { setTableData(data); setCurrentPage(1); }, [data]);
+  useEffect(() => { setCurrentPage(1); }, [optionValue]);
   useEffect(() => {
-    const startIndex = (currentPage - 1) * +optionValue;
-    const endIndex = startIndex + +optionValue;
-    currentItems = tableData.slice(startIndex, endIndex);
-  }, [currentPage]);
+    axiosClient.get("/service/all").then((res) => {
+      const list = res.data?.data ?? res.data ?? [];
+      setServiceOptions(list.map((s: any) => ({ value: String(s.id), label: s.name ?? String(s.id) })));
+    }).catch(() => {});
+  }, []);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [optionValue]);
+  const filteredData = search.trim() === "" ? tableData : tableData.filter((s) => { const q = search.toLowerCase(); return (s.fullname ?? "").toLowerCase().includes(q) || (s.phone ?? "").toLowerCase().includes(q) || (s.service?.name ?? "").toLowerCase().includes(q); });
+  const maxPage = Math.ceil(filteredData.length / +optionValue);
+  const currentItems = filteredData.slice((currentPage - 1) * +optionValue, currentPage * +optionValue);
+  const staticUrl = import.meta.env.VITE_STATIC_PATH ?? "";
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      console.log("Selected file:", file.name);
-    }
+  const openEdit = (item: WorkerItemProps) => {
+    setEditItem(item);
+    setForm({
+      fullname: item.fullname ?? "",
+      phone: item.phone ?? "",
+      service_id: item.service?.id ? String(item.service.id) : (item.serviceId ? String(item.serviceId) : ""),
+      expired: item.expired ? Moment(item.expired).format("YYYY-MM-DD") : "",
+    });
+    openModal();
   };
 
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const payload: any = { fullname: form.fullname, phone: form.phone };
+      if (form.service_id) payload.service_id = Number(form.service_id);
+      if (form.expired) payload.expired = form.expired;
+      if (editItem) {
+        await axiosClient.put(`/worker/${editItem.id}`, payload);
+        toast.success("Usta yangilandi");
+      }
+      onRefetch?.(); closeModal();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? "Xatolik yuz berdi");
+    } finally { setSaving(false); }
+  };
 
-     const service_options = [
-    { value: "Qurilish", label: "Qurilish" },
-    { value: "Oshpaz", label: "Oshpaz" },
-  ];
+  const handleDelete = async (id: number) => {
+    try {
+      await axiosClient.delete(`/worker/${id}`);
+      toast.success("Usta o'chirildi");
+      onRefetch?.();
+    } catch { toast.error("Xatolik yuz berdi"); }
+  };
 
-
-
-
+  const handleExport = () => {
+    const ws = XLSX.utils.json_to_sheet(tableData.map((w) => ({
+      ID: w.id, "To'liq ismi": w.fullname ?? "", Telefon: w.phone ?? "",
+      Xizmat: w.service?.name ?? "", Muddati: w.expired ? Moment(w.expired).format("DD.MM.YYYY") : "",
+      Yaratilgan: Moment(w.createdAt).format("DD.MM.YYYY"),
+    })));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Workers");
+    XLSX.writeFile(wb, `workers-${Moment().format("YYYY-MM-DD")}.xlsx`);
+  };
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
       <div className="max-w-full overflow-x-auto">
-        <div className="px-5 py-3  flex flex-row justify-between items-center border-b border-gray-100 dark:border-white/[0.05]">
-          <div className="flex flex-row items-center gap-2 text-theme-sm font-medium text-gray-500 text-start  dark:text-gray-400">
-            <span>Show</span>
-
-            <Select
-              options={options}
-              onChange={handleSelectChange}
-              className="dark:bg-dark-900"
-              defaultValue="5"
-            />
-            <span>entries</span>
-          </div>
-          <div>
-            {" "}
-            <Button
-              size="sm"
-              variant="outline"
-              endIcon={<DownloadIcon className="size-5 fill-white" />}
-            >
-              Download Worker
-            </Button>
-          </div>
-        </div>
+        <TableToolbar search={search} onSearch={(v) => { setSearch(v); setCurrentPage(1); }} searchPlaceholder="Qidirish..." showValue={optionValue} onShowChange={(v) => { setOptionValue(v); setCurrentPage(1); }} onExport={handleExport} />
         <Table>
-          {/* Table HeWorkerer */}
-          <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
+          <TableHeader>
             <TableRow>
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400"
-              >
-                ID
-              </TableCell>
-
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Worker
-              </TableCell>
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Phone
-              </TableCell>
-               <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Service
-              </TableCell>
-
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Added
-              </TableCell>
-
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Status
-              </TableCell>
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Actions
-              </TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">#</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Rasm</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">To'liq ismi</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Telefon</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Xizmat</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Muddati</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Amallar</TableCell>
             </TableRow>
           </TableHeader>
-
-          {/* Table Body */}
-          <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-            {currentItems.map((order, index) => (
-              <TableRow key={index}>
-                <TableCell className="px-4 py-3 text-gray-500 text-center text-theme-sm dark:text-gray-400">
-                  {order.id}
+          <TableBody>
+            {currentItems.length === 0 ? (
+              <TableRow><TableCell colSpan={7} className="py-8 text-center text-gray-400">Ma'lumot yo'q</TableCell></TableRow>
+            ) : currentItems.map((item, idx) => (
+              <TableRow key={item.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+                <TableCell className="px-5 py-4 text-sm text-gray-600 dark:text-gray-400">{(currentPage - 1) * +optionValue + idx + 1}</TableCell>
+                <TableCell className="px-5 py-4">
+                  {item.image ? (
+                    <img src={`${staticUrl}/${item.image}`} alt={item.fullname} className="w-10 h-10 rounded-full object-cover ring-2 ring-white dark:ring-white/[0.06] shadow-sm" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                  ) : <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-sm font-semibold text-gray-500">{item.fullname?.[0]?.toUpperCase() ?? "?"}</div>}
                 </TableCell>
-                <TableCell className="px-5 py-4 sm:px-6 text-start">
-                  <div className="flex items-center gap-3">
-                    <div className=" overflow-hidden rounded-sm ">
-                      {order.image ? (
-                        <img
-                          width={50}
-                          height={50}
-                          //   src={import.meta.env.VITE_STATIC_PATH + order.image}
-                          src={order.image}
-                          alt={order.name}
-                        />
-                      ) : (
-                        <PaperPlaneIcon className="w-10 h-10 text-gray-500  text-theme-sm dark:text-gray-400" />
-                      )}
-                    </div>
-                    <div>
-                      <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
-                        {order.name}
-                      </span>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                  {order.phone}
-                </TableCell>
-                 <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                  {order.service}
-                </TableCell>
-                <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                  {Moment(order.createdAt).format("HH:mm - MMMM DD, yyyy")}
-                </TableCell>
-
-                <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                  <Badge
-                    size="sm"
-                    color={
-                      "success"
-                      // order.status === "Active"
-                      //   ? "success"
-                      //   : order.status === "Pending"
-                      //   ? "warning"
-                      //   : "error"
-                    }
-                  >
-                    Active
-                  </Badge>
-                </TableCell>
-                <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400 flex gap-2  flex-row items-center">
-                  <Button
-                    size="mini"
-                    variant="outline"
-                    className="text-xl fill-gray-500 dark:fill-gray-400"
-                    onClick={() => {
-                      setWorker({
-                        name : order.name,
-                        phone: order.phone,
-                        service: order.service,
-                      });
-                      openModal();
-                    }}
-                  >
-                    <PencilIcon></PencilIcon>
-                  </Button>
-
-                  <Button
-                    size="mini"
-                    variant="outline"
-                    onClick={async () => {}}
-                  >
-                    <DeleteIcon className="text-xl fill-gray-500 dark:fill-gray-400"></DeleteIcon>
-                  </Button>
+                <TableCell className="px-5 py-4 font-medium text-gray-800 dark:text-white">{item.fullname ?? "-"}</TableCell>
+                <TableCell className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400">{item.phone ?? "-"}</TableCell>
+                <TableCell className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400">{item.service?.name ?? "-"}</TableCell>
+                <TableCell className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400">{item.expired ? Moment(item.expired).format("DD.MM.YYYY") : "-"}</TableCell>
+                <TableCell className="px-5 py-4">
+                  <TableActions onEdit={() => openEdit(item)} onDelete={() => handleDelete(item.id)} />
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-      </div>
-
-      <div className="px-5 py-3 gap-3 flex flex-col md:flex-row justify-between md:items-center border-t border-gray-100 dark:border-white/[0.05] text-theme-sm font-medium text-gray-500  dark:text-gray-400">
-        <div className="flex flex-row items-center gap-2  text-start  ">
-          <Button
-            size="sm"
-            variant="outline"
-            className="w-10 h-10"
-            disabled={currentPage === 1}
-            onClick={goToPreviousPage}
-          >
-            <ArrowRightIcon className="rotate-180 fill-gray-500  dark:fill-gray-400 scale-200" />
-          </Button>
-
-          {[...Array(maxPage)].map((_, i) => (
-            <Button
-              size="sm"
-              variant={currentPage === i + 1 ? "primary" : "outline"}
-              className="w-10 h-10"
-              disabled={false}
-              key={i}
-              onClick={() => {
-                currentPage !== i + 1 && setCurrentPage(i + 1);
-              }}
-            >
-              {i + 1}
-            </Button>
-          ))}
-
-          <Button
-            size="sm"
-            variant="outline"
-            className="w-10 h-10"
-            disabled={currentPage === maxPage}
-            onClick={goToNextPage}
-          >
-            <ArrowRightIcon className=" fill-gray-500  dark:fill-gray-400 scale-200" />
-          </Button>
-        </div>
-        <div>
-          Showing {(currentPage - 1) * +optionValue + 1} to{" "}
-          {Math.min(data.length, currentPage * +optionValue)} of {data.length}{" "}
-          entries
-        </div>
-      </div>
-
-      <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
-        <div className="relative w-full p-4 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-11">
-          <div className="px-2 pr-14">
-            <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-              Edit Worker
-            </h4>
-            <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-              Update Worker with full details.
-            </p>
+        <div className="px-5 py-3 flex justify-between items-center border-t border-gray-100 dark:border-white/[0.05]">
+          <span className="text-sm text-gray-500 dark:text-gray-400">{tableData.length} ta ichidan {Math.min((currentPage-1)*+optionValue+1,tableData.length)}–{Math.min(currentPage*+optionValue,tableData.length)} ko'rsatilmoqda</span>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" disabled={currentPage<=1} onClick={()=>setCurrentPage(p=>p-1)}>Oldingi</Button>
+            <Button size="sm" variant="outline" disabled={currentPage>=maxPage} onClick={()=>setCurrentPage(p=>p+1)}>Keyingi</Button>
           </div>
-          <form className="flex flex-col">
-            <div className="px-2 overflow-y-auto custom-scrollbar">
-              <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-                <div>
-                  <Label>Title</Label>
-                  <Input
-                    type="text"
-                    value={Worker.name}
-                    onChange={(e) =>
-                      setWorker({
-                        ...Worker,
-                        name: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-
-                 <div>
-                  <Label>Phone</Label>
-                  <Input
-                    type="text"
-                    value={Worker.phone}
-                    onChange={(e) =>
-                      setWorker({
-                        ...Worker,
-                        name: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-
-                 <div>
-                  <Label>Service </Label>
-                  <Select
-                    options={service_options}
-                    className="dark:bg-dark-900"
-                    placeholder="Servisni tanlang"
-                    onChange={() => {}}
-                  />
-                </div>
-
-                <div>
-                  <Label>Image</Label>
-                  <FileInput
-                    onChange={handleFileChange}
-                    className="custom-class"
-                  />
-                </div>
-
-                {/* 
-                <div>
-                  <Label>Image</Label>
-                  <FileInput
-                    onChange={handleFileChange}
-                    className="custom-class"
-                  />
-                </div> */}
+        </div>
+      </div>
+      <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[600px] m-4">
+        <div className="relative w-full p-4 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-8">
+          <div className="px-2 pr-14 mb-6">
+            <h4 className="text-xl font-semibold text-gray-800 dark:text-white">Ustani tahrirlash</h4>
+          </div>
+          <div className="flex flex-col gap-4 px-2">
+            <div>
+              <Label>To'liq ismi</Label>
+              <Input type="text" placeholder="To'liq ismi" value={form.fullname} onChange={(e) => setForm({ ...form, fullname: e.target.value })} />
+            </div>
+            <div>
+              <Label>Telefon</Label>
+              <Input type="text" placeholder="+998 XX XXX XX XX" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+            </div>
+            {serviceOptions.length > 0 && (
+              <div>
+                <Label>Xizmat turi</Label>
+                <Select options={serviceOptions} defaultValue={form.service_id} onChange={(v) => setForm({ ...form, service_id: v })} />
               </div>
+            )}
+            <div>
+              <Label>Muddati</Label>
+              <Input type="date" value={form.expired} onChange={(e) => setForm({ ...form, expired: e.target.value })} />
             </div>
-            <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
-              <Button size="sm" variant="outline" onClick={closeModal}>
-                Close
-              </Button>
-              <Button size="sm" onClick={handleWorkerding}>
-                Saves
-              </Button>
-            </div>
-          </form>
+          </div>
+          <div className="flex items-center gap-3 px-2 mt-6 justify-end">
+            <Button size="sm" variant="outline" onClick={closeModal}>Bekor qilish</Button>
+            <Button size="sm" onClick={handleSave} disabled={saving}>{saving ? "Saqlanmoqda..." : "Saqlash"}</Button>
+          </div>
         </div>
       </Modal>
     </div>
