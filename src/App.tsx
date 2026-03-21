@@ -20,6 +20,9 @@ import WorkersPage from "./pages/diametr/Workers";
 import ProductsPage from "./pages/diametr/Products";
 import PromoCodesPage from "./pages/diametr/PromoCodes";
 import AnalyticsPage from "./pages/diametr/Analytics";
+import UnitTypesPage from "./pages/diametr/UnitTypes";
+import ProductItemsPage from "./pages/diametr/ProductItems";
+import SubscriptionsPage from "./pages/diametr/Subscriptions";
 import { PrivateRoute } from "./layout/PrivateRoute";
 import SplashScreen from "./components/common/SplashScreen";
 import { useState, useCallback } from "react";
@@ -57,6 +60,9 @@ export default function App() {
               <Route path="/sales" element={<SalesPage />} />
               <Route path="/promo-codes" element={<PromoCodesPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/unit-types" element={<UnitTypesPage />} />
+              <Route path="/product-items" element={<ProductItemsPage />} />
+              <Route path="/subscriptions" element={<SubscriptionsPage />} />
               <Route path="/users" element={<UsersPage />} />
               <Route path="/admins" element={<AdminsPage />} />
               <Route path="/profile" element={<UserProfiles />} />

@@ -49,8 +49,10 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     label: "Katalog",
     key: "catalog",
     items: [
-      { icon: <CategoryIcon />, name: "Kategoriyalar", path: "/categories" },
-      { icon: <BoxCubeIcon />,  name: "Mahsulotlar",   path: "/products" },
+      { icon: <CategoryIcon />, name: "Kategoriyalar",    path: "/categories" },
+      { icon: <BoxCubeIcon />,  name: "Mahsulotlar",     path: "/products" },
+      { icon: <BoxCubeIcon />,  name: "Tovar Variantlari", path: "/product-items" },
+      { icon: <GridIcon />,     name: "O'lchov Birliklari", path: "/unit-types" },
     ],
   },
   {
@@ -92,6 +94,7 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     items: [
       { icon: <GroupIcon />,      name: "Foydalanuvchilar", path: "/users" },
       { icon: <UserCircleIcon />, name: "Do'kon Adminlari", path: "/admins" },
+      { icon: <CardIcon />,       name: "Obunalar",         path: "/subscriptions" },
     ],
   },
 ];

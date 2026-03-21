@@ -12,6 +12,7 @@ interface SelectProps {
   onChange: (value: string) => void;
   className?: string;
   defaultValue?: string;
+  value?: string;
 }
 
 const Select: React.FC<SelectProps> = ({
@@ -20,25 +21,29 @@ const Select: React.FC<SelectProps> = ({
   onChange,
   className = "",
   defaultValue = "",
+  value,
 }) => {
-  // Manage the selected value
+  // Manage the selected value (uncontrolled fallback)
   const [selectedValue, setSelectedValue] = useState<string>(defaultValue);
 
+  const controlled = value !== undefined;
+  const displayValue = controlled ? value : selectedValue;
+
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    setSelectedValue(value);
-    onChange(value); // Trigger parent handler
+    const v = e.target.value;
+    if (!controlled) setSelectedValue(v);
+    onChange(v); // Trigger parent handler
   };
  
   return (
    <div className="relative ">
      <select
       className={`h-11 w-full appearance-none rounded-lg border border-gray-300 bg-white px-4 py-2.5 pr-8 text-sm shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-600 dark:bg-gray-800 dark:placeholder:text-white/30 dark:focus:border-brand-600 ${
-        selectedValue
+        displayValue
           ? "text-gray-800 dark:text-white/90"
           : "text-gray-400 dark:text-gray-500"
       } ${className}`}
-      value={selectedValue}
+      value={displayValue}
       onChange={handleChange}
     >
       
