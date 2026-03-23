@@ -51,7 +51,6 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     items: [
       { icon: <CategoryIcon />, name: "Kategoriyalar",    path: "/categories" },
       { icon: <BoxCubeIcon />,  name: "Mahsulotlar",     path: "/products" },
-      { icon: <BoxCubeIcon />,  name: "Tovar Variantlari", path: "/product-items" },
       { icon: <GridIcon />,     name: "O'lchov Birliklari", path: "/unit-types" },
     ],
   },

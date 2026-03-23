@@ -25,7 +25,7 @@ export default function SignInForm() {
 
     setLoading(true);
     try {
-      const res = await axiosClient.post('/auth/login', { login, password });
+      const res = await axiosClient.post('/auth/login', { login: login.replace(/\+/g, ''), password });
 
       const user = res.data?.user ?? res.data;
       const role: string = (user?.role ?? "").toUpperCase();
@@ -69,9 +69,9 @@ export default function SignInForm() {
                   Login <span className="text-error-500">*</span>
                 </Label>
                 <Input
-                  placeholder="Login kiriting"
+                  placeholder="998XXXXXXXXX"
                   value={login}
-                  onChange={(e) => setLogin(e.target.value)}
+                  onChange={(e) => setLogin(e.target.value.replace(/[^0-9+]/g, ''))}
                 />
               </div>
               <div>
@@ -98,9 +98,15 @@ export default function SignInForm() {
                 </div>
               </div>
               <div>
-                <Button type="submit" className="w-full" size="sm" disabled={loading}>
+                <Button type="submit" className="w-full" size="sm" disabled={loading || login.trim().length < 12 || password.trim().length < 8}>
                   {loading ? "Kirish..." : "Kirish"}
                 </Button>
+                {(login.trim().length > 0 && login.trim().length < 12) && (
+                  <p className="text-xs text-error-500 mt-1">Login kamida 12 ta belgi bo'lishi kerak</p>
+                )}
+                {(password.trim().length > 0 && password.trim().length < 8) && (
+                  <p className="text-xs text-error-500 mt-1">Parol kamida 8 ta belgi bo'lishi kerak</p>
+                )}
               </div>
             </div>
           </form>
