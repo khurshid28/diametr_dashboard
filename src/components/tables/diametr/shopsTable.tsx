@@ -24,6 +24,9 @@ export interface ShopItemProps {
   image?: string;
   region?: { id: number; name?: string };
   regionId?: number;
+  product_count?: number;
+  total_stock?: number;
+  total_value?: number;
   createdt?: string; createdAt?: string;
 }
 
@@ -97,6 +100,8 @@ export default function ShopsTable({ data, onRefetch }: { data: ShopItemProps[];
     const ws = XLSX.utils.json_to_sheet(tableData.map((s) => ({
       ID: s.id, Nomi: s.name ?? "", INN: s.inn ?? "", Manzil: s.address ?? "",
       Viloyat: s.region?.name ?? "", "Yetkazish narxi": s.delivery_amount ?? "",
+      "Tovarlar soni": s.product_count ?? 0, "Skladda": s.total_stock ?? 0,
+      "Umumiy qiymati": s.total_value ?? 0,
       Muddati: s.expired ? Moment(s.expired).format("DD.MM.YYYY") : "",
       Yaratilgan: Moment(s.createdAt).format("DD.MM.YYYY"),
     })));
@@ -119,13 +124,16 @@ export default function ShopsTable({ data, onRefetch }: { data: ShopItemProps[];
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">INN</TableCell>
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Manzil</TableCell>
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Yetkazish</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Tovarlar</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Skladda</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Umumiy qiymati</TableCell>
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Muddati</TableCell>
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Amallar</TableCell>
             </TableRow>
           </TableHeader>
           <TableBody>
             {currentItems.length === 0 ? (
-              <TableRow><TableCell colSpan={9} className="py-8 text-center text-gray-400">Ma'lumot yo'q</TableCell></TableRow>
+              <TableRow><TableCell colSpan={12} className="py-8 text-center text-gray-400">Ma'lumot yo'q</TableCell></TableRow>
             ) : currentItems.map((item, idx) => (
               <TableRow key={item.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
                 <TableCell className="px-5 py-4 text-sm text-gray-600 dark:text-gray-400">{(currentPage - 1) * +optionValue + idx + 1}</TableCell>
@@ -139,6 +147,25 @@ export default function ShopsTable({ data, onRefetch }: { data: ShopItemProps[];
                 <TableCell className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400">{item.inn ?? "-"}</TableCell>
                 <TableCell className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-[150px] truncate">{item.address ?? "-"}</TableCell>
                 <TableCell className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400">{item.delivery_amount != null ? `${item.delivery_amount.toLocaleString()} so'm` : "-"}</TableCell>
+                <TableCell className="px-5 py-4 text-sm">
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                    (item.product_count ?? 0) > 0
+                      ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+                      : 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500'
+                  }`}>
+                    {item.product_count ?? 0} xil
+                  </span>
+                </TableCell>
+                <TableCell className="px-5 py-4 text-sm">
+                  <span className={`font-semibold ${
+                    (item.total_stock ?? 0) > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500'
+                  }`}>
+                    {(item.total_stock ?? 0).toLocaleString()} ta
+                  </span>
+                </TableCell>
+                <TableCell className="px-5 py-4 text-sm text-gray-700 dark:text-gray-300 font-medium">
+                  {(item.total_value ?? 0) > 0 ? `${(item.total_value! / 1_000_000).toFixed(1)}M` : '—'}
+                </TableCell>
                 <TableCell className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400">{item.expired ? Moment(item.expired).format("DD.MM.YYYY") : "-"}</TableCell>
                 <TableCell className="px-5 py-4">
                   <TableActions onEdit={() => openEdit(item)} onDelete={() => handleDelete(item.id)} />

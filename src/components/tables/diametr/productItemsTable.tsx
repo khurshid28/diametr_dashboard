@@ -13,6 +13,7 @@ import axiosClient from "../../../service/axios.service";
 import { toast } from "../../ui/toast";
 import * as XLSX from "xlsx";
 import ImageField, { ImageFieldResult } from "../../common/ImageField";
+import ColorPalette from "../../common/ColorPalette";
 
 export interface ProductItemRowProps {
   id: number;
@@ -25,6 +26,7 @@ export interface ProductItemRowProps {
   unit_type?: { id: number; name: string; symbol: string } | null;
   product?: { id: number; name_uz?: string; name_ru?: string; name?: string } | null;
   product_id?: number;
+  _count?: { shop_products?: number };
   createdt?: string;
   createdAt?: string;
 }
@@ -171,6 +173,7 @@ export default function ProductItemsTable({
               <TableCell isHeader className="px-4 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">O'lchov</TableCell>
               <TableCell isHeader className="px-4 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Rang</TableCell>
               <TableCell isHeader className="px-4 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">O'lcham</TableCell>
+              <TableCell isHeader className="px-4 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Do'konlar</TableCell>
               <TableCell isHeader className="px-4 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Yaratilgan</TableCell>
               <TableCell isHeader className="px-4 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Amallar</TableCell>
             </TableRow>
@@ -178,7 +181,7 @@ export default function ProductItemsTable({
           <TableBody>
             {currentItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="py-8 text-center text-gray-400">Ma'lumot yo'q</TableCell>
+                <TableCell colSpan={10} className="py-8 text-center text-gray-400">Ma'lumot yo'q</TableCell>
               </TableRow>
             ) : currentItems.map((item, idx) => (
               <TableRow key={item.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
@@ -204,17 +207,26 @@ export default function ProductItemsTable({
                 </TableCell>
                 <TableCell className="px-4 py-4">
                   {item.color
-                    ? <span className="inline-flex items-center gap-1.5">
+                    ? <span className="inline-flex items-center gap-2">
                         <span
-                          className="w-4 h-4 rounded-full border border-gray-200 dark:border-white/10 shadow-sm flex-shrink-0"
-                          style={{ background: item.color.startsWith('#') ? item.color : 'transparent' }}
+                          className="w-7 h-7 rounded-full border-2 border-gray-200 dark:border-white/10 shadow-sm flex-shrink-0 ring-2 ring-white dark:ring-gray-900"
+                          style={{ background: item.color.startsWith('#') ? item.color : '#94a3b8' }}
                         />
-                        <span className="text-sm text-gray-600 dark:text-gray-400">{item.color}</span>
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{item.color}</span>
                       </span>
                     : <span className="text-gray-400 text-xs">-</span>
                   }
                 </TableCell>
                 <TableCell className="px-4 py-4 text-sm text-gray-500 dark:text-gray-400">{item.size ?? "-"}</TableCell>
+                <TableCell className="px-4 py-4 text-sm">
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                    (item._count?.shop_products ?? 0) > 0
+                      ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                      : 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500'
+                  }`}>
+                    {item._count?.shop_products ?? 0} ta
+                  </span>
+                </TableCell>
                 <TableCell className="px-4 py-4 text-sm text-gray-500 dark:text-gray-400">
                   {Moment(item.createdt ?? item.createdAt).format("DD.MM.YYYY")}
                 </TableCell>
@@ -260,13 +272,14 @@ export default function ProductItemsTable({
               <Input type="number" placeholder="1.5, 2, 0.5..." value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} />
             </div>
             <div>
-              <Label>Rang</Label>
-              <Input type="text" placeholder="Qizil, Ko'k, #FF0000..." value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} />
-            </div>
-            <div>
               <Label>O'lcham (size)</Label>
               <Input type="text" placeholder="120x80, XL, 50x50 sm..." value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value })} />
             </div>
+            <ColorPalette
+              value={form.color}
+              onChange={(hex) => setForm({ ...form, color: hex })}
+              onClear={() => setForm({ ...form, color: '' })}
+            />
             <div className="lg:col-span-2">
               <Label>Tavsif</Label>
               <Input type="text" placeholder="Ixtiyoriy tavsif" value={form.desc} onChange={(e) => setForm({ ...form, desc: e.target.value })} />

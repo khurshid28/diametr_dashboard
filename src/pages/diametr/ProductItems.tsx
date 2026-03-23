@@ -16,6 +16,7 @@ import { usePolling } from "../../hooks/usePolling";
 import ProductItemsTable, { ProductItemRowProps } from "../../components/tables/diametr/productItemsTable";
 import { toast } from "../../components/ui/toast";
 import ImageField, { ImageFieldResult } from "../../components/common/ImageField";
+import ColorPalette from "../../components/common/ColorPalette";
 
 export default function ProductItemsPage() {
   const { isOpen, openModal, closeModal } = useModal();
@@ -139,13 +140,14 @@ export default function ProductItemsPage() {
               <Input type="number" placeholder="1.5, 2, 0.5..." value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} />
             </div>
             <div>
-              <Label>Rang</Label>
-              <Input type="text" placeholder="Qizil, Ko'k, #FF0000..." value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} />
-            </div>
-            <div>
               <Label>O'lcham (size)</Label>
               <Input type="text" placeholder="120x80, XL, 50x50 sm..." value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value })} />
             </div>
+            <ColorPalette
+              value={form.color}
+              onChange={(hex) => setForm({ ...form, color: hex })}
+              onClear={() => setForm({ ...form, color: '' })}
+            />
             <div className="lg:col-span-2">
               <Label>Tavsif</Label>
               <Input type="text" placeholder="Ixtiyoriy tavsif" value={form.desc} onChange={(e) => setForm({ ...form, desc: e.target.value })} />

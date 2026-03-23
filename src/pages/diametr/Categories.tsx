@@ -8,7 +8,7 @@ import { useModal } from "../../hooks/useModal";
 import Label from "../../components/form/Label";
 import Input from "../../components/form/input/InputField";
 import { Modal } from "../../components/ui/modal";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import axiosClient from "../../service/axios.service";
 import { useFetchWithLoader } from "../../hooks/useFetchWithLoader";
@@ -18,6 +18,25 @@ import CategorysTable, {
   CategoryItemProps,
 } from "../../components/tables/diametr/categoriesTable";
 import ImageField, { ImageFieldResult } from "../../components/common/ImageField";
+
+interface CategoryStat {
+  id: number;
+  name?: string;
+  name_uz?: string;
+  name_ru?: string;
+  image?: string;
+  product_count: number;
+  shop_product_count: number;
+  total_stock: number;
+  total_value: number;
+}
+
+function fmtValue(v: number): string {
+  if (v >= 1_000_000_000) return (v / 1_000_000_000).toFixed(1).replace(/\.0$/, '') + ' mlrd';
+  if (v >= 1_000_000) return (v / 1_000_000).toFixed(1).replace(/\.0$/, '') + ' M';
+  if (v >= 1_000) return (v / 1_000).toFixed(0) + ' K';
+  return v.toLocaleString();
+}
 
 export interface Category {
   name?: string;
@@ -45,6 +64,18 @@ export default function CategorysPage() {
   usePolling(refetch, 10_000);
 
   const categoryData: CategoryItemProps[] = Array.isArray(data) ? data : [];
+
+  const fetchStats = useCallback(
+    () => axiosClient.get("/category/stats").then((res) => res.data),
+    []
+  );
+  const { data: statsData, refetch: refetchStats } = useFetchWithLoader<CategoryStat[]>({
+    fetcher: fetchStats,
+  });
+  usePolling(refetchStats, 20_000);
+
+  const catStats: CategoryStat[] = Array.isArray(statsData) ? statsData : [];
+  const sortedStats = [...catStats].sort((a, b) => b.total_stock - a.total_stock);
 
   let [Category, setCategory] = useState<Category>(emptyCategory);
   const imageResultRef = useRef<ImageFieldResult | null>(null);
@@ -96,6 +127,70 @@ export default function CategorysPage() {
       <PageBreadcrumb pageTitle="Categorys" />
 
       <div className="space-y-6 ">
+        {/* Category Stats */}
+        {sortedStats.length > 0 && (
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+            <div className="px-5 py-3 border-b border-gray-100 dark:border-white/[0.05]">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Kategoriyalar statistikasi</h3>
+            </div>
+            <div className="max-w-full overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 dark:bg-white/[0.02]">
+                    <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase">Kategoriya</th>
+                    <th className="px-4 py-2.5 text-center text-xs font-medium text-gray-500 uppercase">Tovarlar</th>
+                    <th className="px-4 py-2.5 text-center text-xs font-medium text-gray-500 uppercase">Do'konlarda</th>
+                    <th className="px-4 py-2.5 text-center text-xs font-medium text-gray-500 uppercase">Skladda</th>
+                    <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-500 uppercase">Umumiy qiymati</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedStats.map((cat, idx) => (
+                    <tr key={cat.id} className="border-t border-gray-100 dark:border-white/[0.04] hover:bg-gray-50 dark:hover:bg-white/[0.02]">
+                      <td className="px-4 py-2.5 text-gray-400">{idx + 1}</td>
+                      <td className="px-4 py-2.5 font-medium text-gray-800 dark:text-white">{cat.name_uz || cat.name || '—'}</td>
+                      <td className="px-4 py-2.5 text-center">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
+                          {cat.product_count} xil
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-center">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400">
+                          {cat.shop_product_count} ta
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-center">
+                        <span className={`font-semibold ${cat.total_stock > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
+                          {cat.total_stock.toLocaleString()} ta
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-semibold text-gray-700 dark:text-gray-300">
+                        {fmtValue(cat.total_value)} so'm
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="border-t-2 border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-white/[0.03] font-bold">
+                    <td className="px-4 py-2.5" colSpan={2}>Jami</td>
+                    <td className="px-4 py-2.5 text-center text-blue-600 dark:text-blue-400">
+                      {catStats.reduce((s, c) => s + c.product_count, 0)} xil
+                    </td>
+                    <td className="px-4 py-2.5 text-center text-purple-600 dark:text-purple-400">
+                      {catStats.reduce((s, c) => s + c.shop_product_count, 0)} ta
+                    </td>
+                    <td className="px-4 py-2.5 text-center text-green-600 dark:text-green-400">
+                      {catStats.reduce((s, c) => s + c.total_stock, 0).toLocaleString()} ta
+                    </td>
+                    <td className="px-4 py-2.5 text-right text-gray-800 dark:text-white">
+                      {fmtValue(catStats.reduce((s, c) => s + c.total_value, 0))} so'm
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         <ComponentCard
           title="Categorys Table"
           action={
