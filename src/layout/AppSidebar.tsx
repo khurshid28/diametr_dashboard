@@ -20,7 +20,6 @@ import {
   SaleIcon,
   CopyIcon,
   GroupIcon,
-  SettingsIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 import SidebarWidget from "./SidebarWidget";
@@ -52,13 +51,6 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     items: [
       { icon: <CategoryIcon />, name: "Kategoriyalar",    path: "/categories" },
       { icon: <BoxCubeIcon />,  name: "Mahsulotlar",     path: "/products" },
-    ],
-  },
-  {
-    label: "O'lchovlar",
-    key: "measurements",
-    items: [
-      { icon: <SettingsIcon />, name: "O'lchov Birliklari", path: "/unit-types" },
     ],
   },
   {
