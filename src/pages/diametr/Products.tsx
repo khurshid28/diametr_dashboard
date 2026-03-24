@@ -27,10 +27,16 @@ export interface Product {
   name_ru?: string;
   image?: string;
   category_id?: string;
+  unit_type_id?: string;
 }
 export default function ProductsPage() {
   const { isOpen, openModal, closeModal } = useModal();
   const [autoExpandId, setAutoExpandId] = useState<number | null>(null);
+
+  // Unit type add modal
+  const { isOpen: utOpen, openModal: openUtModal, closeModal: closeUtModal } = useModal();
+  const [utForm, setUtForm] = useState({ name: "", symbol: "" });
+  const [utSaving, setUtSaving] = useState(false);
 
   let emptyProduct: Product = {
     name: "",
@@ -38,6 +44,7 @@ export default function ProductsPage() {
     name_ru: "",
     image: "",
     category_id: "",
+    unit_type_id: "",
   };
 
   let [Product, setProduct] = useState<Product>(emptyProduct);
@@ -72,12 +79,35 @@ export default function ProductsPage() {
     () => axiosClient.get("/unit-type/all").then((res) => res.data),
     []
   );
-  const { data: utData } = useFetchWithLoader<{ id: number; name: string; symbol: string }[]>({
+  const { data: utData, refetch: refetchUt } = useFetchWithLoader<{ id: number; name: string; symbol: string }[]>({
     fetcher: fetchUnitTypes,
   });
   const unitTypeOptions = Array.isArray(utData)
     ? utData.map((u) => ({ value: String(u.id), label: `${u.symbol} — ${u.name}` }))
     : [];
+
+  // "dona" ni default qilish
+  const donaOption = unitTypeOptions.find((o) => o.label.toLowerCase().includes("dona"));
+  const defaultUnitTypeId = donaOption?.value ?? "";
+
+  const handleAddUnitType = async () => {
+    if (!utForm.name.trim() || !utForm.symbol.trim()) {
+      toast.error("Nom va belgi kiritish shart");
+      return;
+    }
+    setUtSaving(true);
+    try {
+      await axiosClient.post("/unit-type", utForm);
+      toast.success("O'lchov birligi qo'shildi");
+      refetchUt();
+      closeUtModal();
+      setUtForm({ name: "", symbol: "" });
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? "Xatolik yuz berdi");
+    } finally {
+      setUtSaving(false);
+    }
+  };
 
   const handleAdding = async () => {
     if (!Product.category_id) {
@@ -110,6 +140,7 @@ export default function ProductsPage() {
         name_ru: Product.name_ru,
         image: imageFilename,
         category_id: Number(Product.category_id),
+        unit_type_id: Product.unit_type_id ? Number(Product.unit_type_id) : undefined,
       });
       const newId = created.data?.id ?? created.data?.data?.id;
       toast.success("Mahsulot qo'shildi! Endi variantlar qo'shing");
@@ -135,6 +166,17 @@ export default function ProductsPage() {
       <PageBreadcrumb pageTitle="Mahsulotlar" />
 
       <div className="space-y-6 ">
+        {/* O'lchov birligi qo'shish tugmasi */}
+        <div className="flex justify-end">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => { setUtForm({ name: "", symbol: "" }); openUtModal(); }}
+          >
+            + O'lchov birligi qo'shish
+          </Button>
+        </div>
+
         <ComponentCard
           title="Mahsulotlar"
           action={
@@ -143,7 +185,7 @@ export default function ProductsPage() {
               variant="primary"
               startIcon={<PlusIcon className="size-5 fill-white" />}
               onClick={() => {
-                setProduct(emptyProduct);
+                setProduct({ ...emptyProduct, unit_type_id: defaultUnitTypeId });
                 imageResultRef.current = null;
                 openModal();
               }}
@@ -224,6 +266,16 @@ export default function ProductsPage() {
                   </p>
                 )}
               </div>
+              <div>
+                <Label>O'lchov birligi</Label>
+                <Select
+                  options={unitTypeOptions}
+                  className="dark:bg-dark-900"
+                  placeholder="kg, L, m..."
+                  defaultValue={Product.unit_type_id}
+                  onChange={(v) => setProduct({ ...Product, unit_type_id: v })}
+                />
+              </div>
               <div className="lg:col-span-2">
                 <ImageField
                   label="Rasm"
@@ -254,6 +306,46 @@ export default function ProductsPage() {
                 ) : "Yaratish va davom etish"}
               </Button>
             </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ─── Unit Type Add Modal ────────────────────────── */}
+      <Modal isOpen={utOpen} onClose={closeUtModal} className="max-w-[500px] m-4">
+        <div className="relative w-full p-4 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-8">
+          <div className="px-2 pr-14 mb-6">
+            <h4 className="text-2xl font-semibold text-gray-800 dark:text-white/90">
+              O'lchov birligi qo'shish
+            </h4>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Masalan: Kilogramm → kg, Litr → L, Metr → m
+            </p>
+          </div>
+          <div className="flex flex-col gap-4 px-2">
+            <div>
+              <Label>Nomi</Label>
+              <Input
+                type="text"
+                placeholder="Kilogramm, Litr, Metr..."
+                value={utForm.name}
+                onChange={(e) => setUtForm({ ...utForm, name: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Belgi (qisqa)</Label>
+              <Input
+                type="text"
+                placeholder="kg, L, m..."
+                value={utForm.symbol}
+                onChange={(e) => setUtForm({ ...utForm, symbol: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-3 px-2 mt-6 justify-end">
+            <Button size="sm" variant="outline" onClick={closeUtModal}>Bekor qilish</Button>
+            <Button size="sm" onClick={handleAddUnitType} disabled={utSaving}>
+              {utSaving ? "Saqlanmoqda..." : "Qo'shish"}
+            </Button>
           </div>
         </div>
       </Modal>

@@ -37,6 +37,8 @@ export interface ProductItemProps {
   image?: string;
   category?: { id: number; name_uz?: string; name?: string };
   categoryId?: number;
+  unit_type?: { id: number; name: string; symbol: string } | null;
+  unit_type_id?: number;
   items?: VariantProps[];
   product_items?: VariantProps[];
   _count?: { items?: number; product_items?: number };
@@ -44,8 +46,8 @@ export interface ProductItemProps {
   createdAt?: string;
 }
 
-const emptyProductForm = { name_uz: "", name_ru: "", category_id: "" };
-const emptyVariantForm = { name: "", desc: "", color: "", size: "", unit_type_id: "" };
+const emptyProductForm = { name_uz: "", name_ru: "", category_id: "", unit_type_id: "" };
+const emptyVariantForm = { name: "", desc: "", color: "", size: "", value: "", size_x: "", size_y: "", size_z: "" };
 
 export default function ProductsTable({
   data,
@@ -77,6 +79,7 @@ export default function ProductsTable({
   const { isOpen: varOpen, openModal: openVar, closeModal: closeVar } = useModal();
   const [editVariant, setEditVariant] = useState<VariantProps | null>(null);
   const [varProductId, setVarProductId] = useState<number>(0);
+  const [varUnitSymbol, setVarUnitSymbol] = useState<string>("");
   const [vForm, setVForm] = useState({ ...emptyVariantForm });
   const [vSaving, setVSaving] = useState(false);
   const varImgRef = useRef<ImageFieldResult | null>(null);
@@ -120,6 +123,7 @@ export default function ProductsTable({
       name_uz: item.name_uz ?? item.name ?? "",
       name_ru: item.name_ru ?? "",
       category_id: item.category?.id ? String(item.category.id) : (item.categoryId ? String(item.categoryId) : ""),
+      unit_type_id: item.unit_type?.id ? String(item.unit_type.id) : (item.unit_type_id ? String(item.unit_type_id) : ""),
     });
     pImgRef.current = null;
     pImgKey.current++;
@@ -144,6 +148,8 @@ export default function ProductsTable({
       }
       const payload: any = { name_uz: pForm.name_uz, name_ru: pForm.name_ru };
       if (pForm.category_id) payload.category_id = Number(pForm.category_id);
+      if (pForm.unit_type_id) payload.unit_type_id = Number(pForm.unit_type_id);
+      else payload.unit_type_id = null;
       if (imageFilename) payload.image = imageFilename;
       if (editItem) {
         await axiosClient.put(`/product/${editItem.id}`, payload);
@@ -172,6 +178,8 @@ export default function ProductsTable({
   const startAddVariant = (productId: number) => {
     setEditVariant(null);
     setVarProductId(productId);
+    const product = tableData.find(p => p.id === productId);
+    setVarUnitSymbol(product?.unit_type?.symbol ?? "");
     setVForm({ ...emptyVariantForm });
     varImgRef.current = null;
     varImgKey.current++;
@@ -181,12 +189,25 @@ export default function ProductsTable({
   const startEditVariant = (v: VariantProps, productId: number) => {
     setEditVariant(v);
     setVarProductId(productId);
+    const product = tableData.find(p => p.id === productId);
+    const sym = product?.unit_type?.symbol ?? "";
+    setVarUnitSymbol(sym);
+    let size_x = "", size_y = "", size_z = "";
+    if (v.size && (sym === "x*y" || sym === "x*y*z")) {
+      const parts = v.size.split("x");
+      size_x = parts[0] ?? "";
+      size_y = parts[1] ?? "";
+      size_z = parts[2] ?? "";
+    }
     setVForm({
       name: v.name ?? "",
       desc: v.desc ?? "",
       color: v.color ?? "",
       size: v.size ?? "",
-      unit_type_id: v.unit_type?.id ? String(v.unit_type.id) : "",
+      value: "",
+      size_x,
+      size_y,
+      size_z,
     });
     varImgRef.current = null;
     varImgKey.current++;
@@ -217,10 +238,16 @@ export default function ProductsTable({
         name: vForm.name,
         desc: vForm.desc || undefined,
         color: vForm.color || undefined,
-        size: vForm.size || undefined,
-        unit_type_id: vForm.unit_type_id ? Number(vForm.unit_type_id) : undefined,
         product_id: varProductId,
       };
+      // Unit type ga qarab value/size yuborish
+      if (varUnitSymbol === "x*y" && vForm.size_x && vForm.size_y) {
+        payload.size = `${vForm.size_x}x${vForm.size_y}`;
+      } else if (varUnitSymbol === "x*y*z" && vForm.size_x && vForm.size_y && vForm.size_z) {
+        payload.size = `${vForm.size_x}x${vForm.size_y}x${vForm.size_z}`;
+      } else if (varUnitSymbol && varUnitSymbol !== "dona" && varUnitSymbol !== "x*y" && varUnitSymbol !== "x*y*z" && vForm.value) {
+        payload.value = Number(vForm.value);
+      }
       if (imageFilename) payload.image = imageFilename;
 
       if (editVariant) {
@@ -288,6 +315,7 @@ export default function ProductsTable({
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Nomi (UZ)</TableCell>
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Nomi (RU)</TableCell>
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Kategoriya</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">O'lchov</TableCell>
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Variantlar</TableCell>
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Yaratilgan</TableCell>
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Amallar</TableCell>
@@ -296,7 +324,7 @@ export default function ProductsTable({
           <TableBody>
             {currentItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="py-8 text-center text-gray-400">Ma'lumot yo'q</TableCell>
+                <TableCell colSpan={9} className="py-8 text-center text-gray-400">Ma'lumot yo'q</TableCell>
               </TableRow>
             ) : currentItems.map((item, idx) => {
               const isExpanded = expandedId === item.id;
@@ -338,6 +366,13 @@ export default function ProductsTable({
                       </span>
                     </TableCell>
                     <TableCell className="px-5 py-4">
+                      {item.unit_type ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-brand-50 dark:bg-brand-900/20 text-xs font-semibold text-brand-700 dark:text-brand-400 border border-brand-100 dark:border-brand-800/30">
+                          {item.unit_type.symbol} — {item.unit_type.name}
+                        </span>
+                      ) : <span className="text-gray-300 dark:text-gray-600">—</span>}
+                    </TableCell>
+                    <TableCell className="px-5 py-4">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
                         variants.length > 0
                           ? "bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400 border border-brand-100 dark:border-brand-800/30"
@@ -362,7 +397,7 @@ export default function ProductsTable({
                   {/* Expanded variants */}
                   {isExpanded && (
                     <TableRow>
-                      <TableCell colSpan={8} className="p-0">
+                      <TableCell colSpan={9} className="p-0">
                         <div className="bg-gradient-to-b from-gray-50 to-white dark:from-white/[0.03] dark:to-white/[0.01] border-t border-b border-gray-100 dark:border-white/[0.05]">
                           <div className="px-6 py-5">
                             <div className="flex items-center justify-between mb-4">
@@ -542,6 +577,12 @@ export default function ProductsTable({
                   <Select options={categoryOptions} defaultValue={pForm.category_id} onChange={(v) => setPForm({ ...pForm, category_id: v })} />
                 </div>
               )}
+              {unitTypes.length > 0 && (
+                <div>
+                  <Label>O'lchov birligi</Label>
+                  <Select options={[{ value: "", label: "Tanlanmagan" }, ...unitTypes]} defaultValue={pForm.unit_type_id} onChange={(v) => setPForm({ ...pForm, unit_type_id: v })} placeholder="kg, L, m..." />
+                </div>
+              )}
               <div>
                 <Label>Rasm (barcha variantlar uchun)</Label>
                 <ImageField key={pImgKey.current} label="" onChange={(r) => { pImgRef.current = r; }} />
@@ -604,20 +645,52 @@ export default function ProductsTable({
                 <Label>Variant nomi *</Label>
                 <Input type="text" placeholder="Cola 1.5L, Qizil 5kg..." value={vForm.name} onChange={(e) => setVForm({ ...vForm, name: e.target.value })} />
               </div>
-              <div>
-                <Label>O'lchov birligi</Label>
-                <Select options={unitTypes} value={vForm.unit_type_id} onChange={(v) => setVForm({ ...vForm, unit_type_id: v })} placeholder="kg, L, m..." />
-              </div>
-              <div>
-                <Label>O'lcham (size)</Label>
-                <Input type="text" placeholder="120x80, XL, 50x50 sm..." value={vForm.size} onChange={(e) => setVForm({ ...vForm, size: e.target.value })} />
-              </div>
-              <div>{/* spacer for grid alignment */}</div>
+
+              {/* Unit type ga qarab miqdor inputlar */}
+              {varUnitSymbol === "x*y" ? (
+                <>
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <Label>X (eni)</Label>
+                      <Input type="number" placeholder="120" value={vForm.size_x} onChange={(e) => setVForm({ ...vForm, size_x: e.target.value })} />
+                    </div>
+                    <span className="pb-2.5 text-gray-400 font-bold">x</span>
+                    <div className="flex-1">
+                      <Label>Y (bo'yi)</Label>
+                      <Input type="number" placeholder="80" value={vForm.size_y} onChange={(e) => setVForm({ ...vForm, size_y: e.target.value })} />
+                    </div>
+                  </div>
+                </>
+              ) : varUnitSymbol === "x*y*z" ? (
+                <>
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <Label>X</Label>
+                      <Input type="number" placeholder="120" value={vForm.size_x} onChange={(e) => setVForm({ ...vForm, size_x: e.target.value })} />
+                    </div>
+                    <span className="pb-2.5 text-gray-400 font-bold">x</span>
+                    <div className="flex-1">
+                      <Label>Y</Label>
+                      <Input type="number" placeholder="80" value={vForm.size_y} onChange={(e) => setVForm({ ...vForm, size_y: e.target.value })} />
+                    </div>
+                    <span className="pb-2.5 text-gray-400 font-bold">x</span>
+                    <div className="flex-1">
+                      <Label>Z</Label>
+                      <Input type="number" placeholder="50" value={vForm.size_z} onChange={(e) => setVForm({ ...vForm, size_z: e.target.value })} />
+                    </div>
+                  </div>
+                </>
+              ) : varUnitSymbol && varUnitSymbol !== "dona" ? (
+                <div>
+                  <Label>Miqdor ({varUnitSymbol})</Label>
+                  <Input type="number" placeholder={`Masalan: 1.5 ${varUnitSymbol}`} value={vForm.value} onChange={(e) => setVForm({ ...vForm, value: e.target.value })} />
+                </div>
+              ) : null}
+
               <ColorPalette
                 value={vForm.color}
                 onChange={(hex) => setVForm({ ...vForm, color: hex })}
                 onClear={() => setVForm({ ...vForm, color: "" })}
-                defaultOpen
               />
               <div className="lg:col-span-2">
                 <Label>Tavsif</Label>
