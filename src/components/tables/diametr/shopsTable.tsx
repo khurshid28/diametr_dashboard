@@ -122,6 +122,14 @@ export default function ShopsTable({ data, onRefetch }: { data: ShopItemProps[];
     } catch { toast.error("Xatolik yuz berdi"); }
   };
 
+  const handleToggleBlock = async (item: ShopItemProps) => {
+    try {
+      await axiosClient.patch(`/shop/${item.id}/block`);
+      toast.success(item.work_status === "BLOCKED" ? "Do'kon ochildi" : "Do'kon bloklandi");
+      onRefetch?.();
+    } catch { toast.error("Xatolik yuz berdi"); }
+  };
+
   const handleExport = () => {
     const ws = XLSX.utils.json_to_sheet(tableData.map((s) => ({
       ID: s.id, Nomi: s.name ?? "", INN: s.inn ?? "", Manzil: s.address ?? "",
@@ -215,7 +223,22 @@ export default function ShopsTable({ data, onRefetch }: { data: ShopItemProps[];
                   {(item.total_value ?? 0) > 0 ? `${(item.total_value! / 1_000_000).toFixed(1)}M` : '—'}
                 </TableCell>
                 <TableCell className="px-5 py-4">
-                  <TableActions onEdit={() => openEdit(item)} onDelete={() => handleDelete(item.id)} />
+                  <TableActions
+                    onEdit={() => openEdit(item)}
+                    onDelete={() => handleDelete(item.id)}
+                    extraActions={[
+                      {
+                        label: item.work_status === "BLOCKED" ? "Blokdan chiqarish" : "Bloklash",
+                        color: item.work_status === "BLOCKED" ? "green" : "orange",
+                        icon: item.work_status === "BLOCKED" ? (
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 11V7a4 4 0 118 0m-4 8v2m-6-2a6 6 0 1112 0v4H4v-4z" /></svg>
+                        ) : (
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                        ),
+                        onClick: () => handleToggleBlock(item),
+                      },
+                    ]}
+                  />
                 </TableCell>
               </TableRow>
             );
