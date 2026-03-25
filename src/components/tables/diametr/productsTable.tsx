@@ -705,6 +705,12 @@ export default function ProductsTable({
               </div>
               <div className="lg:col-span-2">
                 <ImageField key={varImgKey.current} label="Rasm (ixtiyoriy)" onChange={(r) => { varImgRef.current = r; }} />
+                {editVariant?.image && !varImgRef.current && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <img src={`${staticUrl}/static/product-items/${editVariant.image}`} className="w-10 h-10 rounded-lg object-cover ring-1 ring-gray-200 dark:ring-gray-700" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                    <span className="text-xs text-gray-400">Joriy rasm</span>
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-3 mt-6 justify-end">
