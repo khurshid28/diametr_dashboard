@@ -707,7 +707,7 @@ export default function ProductsTable({
                 <Input type="text" placeholder="Ixtiyoriy tavsif" value={vForm.desc} onChange={(e) => setVForm({ ...vForm, desc: e.target.value })} />
               </div>
               <div className="lg:col-span-2">
-                <ImageField key={varImgKey.current} label="Rasm (ixtiyoriy)" onChange={(r) => { varImgRef.current = r; setVarImgChanged(true); }} />
+                <ImageField key={varImgKey.current} label="Rasm (ixtiyoriy)" onChange={(r) => { varImgRef.current = r; if (r?.file || r?.url) setVarImgChanged(true); }} />
                 {editVariant?.image && !varImgChanged && (
                   <div className="mt-2 flex items-center gap-2">
                     <img src={`${staticUrl}/static/product-items/${editVariant.image}`} className="w-10 h-10 rounded-lg object-cover ring-1 ring-gray-200 dark:ring-gray-700" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
