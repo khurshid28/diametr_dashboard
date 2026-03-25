@@ -199,7 +199,7 @@ export default function ShopsPage() {
                 <div className="lg:col-span-2">
                   <Label>Bepul sinov muddati</Label>
                   <div className="flex flex-wrap gap-2 mt-2">
-                    {[1, 2, 3, 6, 12].map((m) => (
+                    {[0, 1, 2, 3, 6, 12].map((m) => (
                       <button
                         key={m}
                         type="button"
@@ -214,12 +214,12 @@ export default function ShopsPage() {
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
-                        {m} oy
+                        {m === 0 ? "Yo'q" : `${m} oy`}
                         {m === 2 && <span className="text-xs text-brand-500 dark:text-brand-400">(default)</span>}
                       </button>
                     ))}
                   </div>
-                  <p className="mt-1.5 text-xs text-gray-400">Do'kon yaratilganda {trialMonths} oy bepul sinov beriladi</p>
+                  <p className="mt-1.5 text-xs text-gray-400">{trialMonths === 0 ? "Bepul sinov berilmaydi — do'kon darhol obuna sotib olishi kerak" : `Do'kon yaratilganda ${trialMonths} oy bepul sinov beriladi`}</p>
                 </div>
               </div>
             </div>
