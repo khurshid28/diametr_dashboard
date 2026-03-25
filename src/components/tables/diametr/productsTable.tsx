@@ -23,6 +23,7 @@ export interface VariantProps {
   image?: string;
   color?: string;
   size?: string;
+  value?: number | string | null;
   unit_type?: { id: number; name: string; symbol: string } | null;
   _count?: { shop_products?: number };
   createdt?: string;
@@ -204,7 +205,7 @@ export default function ProductsTable({
       desc: v.desc ?? "",
       color: v.color ?? "",
       size: v.size ?? "",
-      value: "",
+      value: v.value != null ? String(v.value) : "",
       size_x,
       size_y,
       size_z,
@@ -342,7 +343,7 @@ export default function ProductsTable({
                     <TableCell className="px-5 py-4">
                       {item.image ? (
                         <img
-                          src={`${staticUrl}/${item.image}`}
+                          src={`${staticUrl}/static/products/${item.image}`}
                           alt={item.name_uz}
                           className="w-10 h-10 rounded-xl object-cover ring-2 ring-white dark:ring-white/[0.06] shadow-sm"
                           onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
@@ -452,7 +453,7 @@ export default function ProductsTable({
                                         <td className="px-4 py-3 font-medium text-gray-800 dark:text-white">
                                           <div className="flex items-center gap-2.5">
                                             {v.image ? (
-                                              <img src={`${staticUrl}/${v.image}`} className="w-8 h-8 rounded-lg object-cover ring-1 ring-gray-200 dark:ring-gray-700" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                                              <img src={`${staticUrl}/static/product-items/${v.image}`} className="w-8 h-8 rounded-lg object-cover ring-1 ring-gray-200 dark:ring-gray-700" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                                             ) : (
                                               <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-400">
@@ -478,7 +479,13 @@ export default function ProductsTable({
                                             </span>
                                           ) : <span className="text-gray-300 dark:text-gray-600">—</span>}
                                         </td>
-                                        <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{v.size ?? <span className="text-gray-300 dark:text-gray-600">—</span>}</td>
+                                        <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
+                                          {v.value != null && String(v.value) !== "0" ? (
+                                            <span className="text-sm font-medium">{String(v.value)}</span>
+                                          ) : v.size ? (
+                                            <span className="text-sm">{v.size}</span>
+                                          ) : <span className="text-gray-300 dark:text-gray-600">—</span>}
+                                        </td>
                                         <td className="px-4 py-3">
                                           <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold ${
                                             (v._count?.shop_products ?? 0) > 0
@@ -588,7 +595,7 @@ export default function ProductsTable({
                 <ImageField key={pImgKey.current} label="" onChange={(r) => { pImgRef.current = r; }} />
                 {editItem?.image && !pImgRef.current && (
                   <div className="mt-2 flex items-center gap-2">
-                    <img src={`${staticUrl}/${editItem.image}`} className="w-10 h-10 rounded-lg object-cover ring-1 ring-gray-200 dark:ring-gray-700" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                    <img src={`${staticUrl}/static/products/${editItem.image}`} className="w-10 h-10 rounded-lg object-cover ring-1 ring-gray-200 dark:ring-gray-700" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                     <span className="text-xs text-gray-400">Joriy rasm</span>
                   </div>
                 )}
