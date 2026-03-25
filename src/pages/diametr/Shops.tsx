@@ -61,6 +61,7 @@ export default function ShopsPage() {
   const [shopForm, setShopForm] = useState<Shop>(emptyShop);
   const imageResultRef = useRef<ImageFieldResult | null>(null);
   const [saving, setSaving] = useState(false);
+  const [trialMonths, setTrialMonths] = useState(2);
 
   const fetchShops = useCallback(
     () => axiosClient.get("/shop/all").then((res) => res.data),
@@ -101,6 +102,7 @@ export default function ShopsPage() {
         director: shopForm.director_name,
         director_phone: shopForm.director_phone,
         image: imageFilename,
+        free_trial_months: trialMonths,
       });
       toast.success("Do'kon qo'shildi");
       refetch();
@@ -130,7 +132,7 @@ export default function ShopsPage() {
               size="sm"
               variant="primary"
               startIcon={<PlusIcon className="size-5 fill-white" />}
-              onClick={() => { setShopForm(emptyShop); imageResultRef.current = null; openModal(); }}
+              onClick={() => { setShopForm(emptyShop); imageResultRef.current = null; setTrialMonths(2); openModal(); }}
             >
               Add Shop
             </Button>
@@ -191,6 +193,33 @@ export default function ShopsPage() {
                     label="Do'kon rasmi"
                     onChange={(result) => { imageResultRef.current = result; }}
                   />
+                </div>
+
+                {/* Trial months selector */}
+                <div className="lg:col-span-2">
+                  <Label>Bepul sinov muddati</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {[1, 2, 3, 6, 12].map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setTrialMonths(m)}
+                        className={[
+                          "flex items-center gap-1.5 px-4 py-2.5 rounded-xl border-2 text-sm font-medium transition-all",
+                          trialMonths === m
+                            ? "border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400 dark:border-brand-500 shadow-sm"
+                            : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-white/[0.03]",
+                        ].join(" ")}
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        {m} oy
+                        {m === 2 && <span className="text-xs text-brand-500 dark:text-brand-400">(default)</span>}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-1.5 text-xs text-gray-400">Do'kon yaratilganda {trialMonths} oy bepul sinov beriladi</p>
                 </div>
               </div>
             </div>
