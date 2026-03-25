@@ -64,7 +64,7 @@ export default function ShopsPage() {
   const [trialMonths, setTrialMonths] = useState(2);
 
   const fetchShops = useCallback(
-    () => axiosClient.get("/shop/all").then((res) => res.data),
+    () => axiosClient.get("/shop/all-admin").then((res) => res.data),
     []
   );
   const { data, isLoading, refetch } = useFetchWithLoader<ShopItemProps[]>({
