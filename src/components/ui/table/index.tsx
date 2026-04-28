@@ -63,7 +63,18 @@ const TableCell: React.FC<TableCellProps> = ({
   onClick,
 }) => {
   const CellTag = isHeader ? "th" : "td";
-  return <CellTag className={` ${className}`} colSpan={colSpan} onClick={onClick}>{children}</CellTag>;
+  // `<th>` defaults to text-align: center in browsers, while `<td>` defaults to left.
+  // Force consistent left alignment so headers line up with cells.
+  const base = "text-left align-middle";
+  return (
+    <CellTag
+      className={`${base} ${className ?? ""}`}
+      colSpan={colSpan}
+      onClick={onClick}
+    >
+      {children}
+    </CellTag>
+  );
 };
 
 export { Table, TableHeader, TableBody, TableRow, TableCell };

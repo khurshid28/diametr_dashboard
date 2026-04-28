@@ -10,17 +10,20 @@ import Label from "../../form/Label";
 import { Modal } from "../../ui/modal";
 import axiosClient from "../../../service/axios.service";
 import { toast } from "../../ui/toast";
+import TranslateButton from "../../common/TranslateButton";
 import * as XLSX from "xlsx";
 
 export interface UnitTypeItemProps {
   id: number;
   name: string;
+  name_uz?: string | null;
+  name_ru?: string | null;
   symbol: string;
   createdAt?: string;
 }
 
 const showOptions = [{ value: "10", label: "10" }, { value: "20", label: "20" }, { value: "50", label: "50" }];
-const emptyForm = { name: "", symbol: "" };
+const emptyForm = { name_uz: "", name_ru: "", symbol: "" };
 
 export default function UnitTypesTable({ data, onRefetch }: { data: UnitTypeItemProps[]; onRefetch?: () => void }) {
   const [tableData, setTableData] = useState(data);
@@ -39,26 +42,33 @@ export default function UnitTypesTable({ data, onRefetch }: { data: UnitTypeItem
     ? tableData
     : tableData.filter((s) => {
         const q = search.toLowerCase();
-        return s.name.toLowerCase().includes(q) || s.symbol.toLowerCase().includes(q);
+        return s.name.toLowerCase().includes(q)
+          || (s.name_uz ?? "").toLowerCase().includes(q)
+          || (s.name_ru ?? "").toLowerCase().includes(q)
+          || s.symbol.toLowerCase().includes(q);
       });
   const maxPage = Math.ceil(filteredData.length / +optionValue);
   const currentItems = filteredData.slice((currentPage - 1) * +optionValue, currentPage * +optionValue);
 
   const openEdit = (item: UnitTypeItemProps) => {
     setEditItem(item);
-    setForm({ name: item.name, symbol: item.symbol });
+    setForm({
+      name_uz: item.name_uz ?? item.name ?? "",
+      name_ru: item.name_ru ?? "",
+      symbol: item.symbol,
+    });
     openModal();
   };
 
   const handleSave = async () => {
-    if (!form.name.trim() || !form.symbol.trim()) {
+    if (!form.name_uz.trim() || !form.symbol.trim()) {
       toast.error("Nom va belgi kiritish shart");
       return;
     }
     setSaving(true);
     try {
       if (editItem) {
-        await axiosClient.put(`/unit-type/${editItem.id}`, form);
+        await axiosClient.put(`/unit-type/${editItem.id}`, { ...form, name: form.name_uz });
         toast.success("O'lchov birligi yangilandi");
       }
       onRefetch?.();
@@ -83,7 +93,8 @@ export default function UnitTypesTable({ data, onRefetch }: { data: UnitTypeItem
   const handleExport = () => {
     const ws = XLSX.utils.json_to_sheet(tableData.map((u) => ({
       ID: u.id,
-      "Nomi": u.name,
+      "Nomi (UZ)": u.name_uz ?? u.name,
+      "Nomi (RU)": u.name_ru ?? "",
       "Belgi": u.symbol,
       "Yaratilgan": Moment(u.createdAt).format("DD.MM.YYYY"),
     })));
@@ -107,7 +118,8 @@ export default function UnitTypesTable({ data, onRefetch }: { data: UnitTypeItem
           <TableHeader>
             <TableRow>
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">#</TableCell>
-              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Nomi</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Nomi (UZ)</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Nomi (RU)</TableCell>
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Belgi</TableCell>
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Yaratilgan</TableCell>
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Amallar</TableCell>
@@ -116,14 +128,15 @@ export default function UnitTypesTable({ data, onRefetch }: { data: UnitTypeItem
           <TableBody>
             {currentItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-8 text-center text-gray-400">Ma'lumot yo'q</TableCell>
+                <TableCell colSpan={6} className="py-8 text-center text-gray-400">Ma'lumot yo'q</TableCell>
               </TableRow>
             ) : currentItems.map((item, idx) => (
               <TableRow key={item.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
                 <TableCell className="px-5 py-4 text-sm text-gray-600 dark:text-gray-400">
                   {(currentPage - 1) * +optionValue + idx + 1}
                 </TableCell>
-                <TableCell className="px-5 py-4 font-medium text-gray-800 dark:text-white">{item.name}</TableCell>
+                <TableCell className="px-5 py-4 font-medium text-gray-800 dark:text-white">{item.name_uz ?? item.name}</TableCell>
+                <TableCell className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400">{item.name_ru ?? "—"}</TableCell>
                 <TableCell className="px-5 py-4">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-400 border border-brand-200 dark:border-brand-500/20">
                     {item.symbol}
@@ -157,12 +170,35 @@ export default function UnitTypesTable({ data, onRefetch }: { data: UnitTypeItem
           </div>
           <div className="flex flex-col gap-4 px-2">
             <div>
-              <Label>Nomi (masalan: Kilogramm)</Label>
+              <div className="flex items-center justify-between mb-1.5">
+                <Label>Nomi (O'zbek)</Label>
+                <TranslateButton
+                  source={form.name_ru}
+                  direction="ru->uz"
+                  onResult={(t) => setForm({ ...form, name_uz: t })}
+                />
+              </div>
               <Input
                 type="text"
                 placeholder="Kilogramm"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                value={form.name_uz}
+                onChange={(e) => setForm({ ...form, name_uz: e.target.value })}
+              />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <Label>Nomi (Ruscha)</Label>
+                <TranslateButton
+                  source={form.name_uz}
+                  direction="uz->ru"
+                  onResult={(t) => setForm({ ...form, name_ru: t })}
+                />
+              </div>
+              <Input
+                type="text"
+                placeholder="Килограмм"
+                value={form.name_ru}
+                onChange={(e) => setForm({ ...form, name_ru: e.target.value })}
               />
             </div>
             <div>

@@ -19,6 +19,7 @@ import ProductsTable, {
 } from "../../components/tables/diametr/productsTable";
 import { usePolling } from "../../hooks/usePolling";
 import ImageField, { ImageFieldResult } from "../../components/common/ImageField";
+import TranslateButton from "../../components/common/TranslateButton";
 import { toast } from "../../components/ui/toast";
 
 export interface Product {
@@ -32,10 +33,11 @@ export interface Product {
 export default function ProductsPage() {
   const { isOpen, openModal, closeModal } = useModal();
   const [autoExpandId, setAutoExpandId] = useState<number | null>(null);
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>("");
 
   // Unit type add modal
   const { isOpen: utOpen, openModal: openUtModal, closeModal: closeUtModal } = useModal();
-  const [utForm, setUtForm] = useState({ name: "", symbol: "" });
+  const [utForm, setUtForm] = useState({ name_uz: "", name_ru: "", symbol: "" });
   const [utSaving, setUtSaving] = useState(false);
 
   let emptyProduct: Product = {
@@ -79,11 +81,11 @@ export default function ProductsPage() {
     () => axiosClient.get("/unit-type/all").then((res) => res.data),
     []
   );
-  const { data: utData, refetch: refetchUt } = useFetchWithLoader<{ id: number; name: string; symbol: string }[]>({
+  const { data: utData, refetch: refetchUt } = useFetchWithLoader<{ id: number; name: string; name_uz?: string | null; name_ru?: string | null; symbol: string }[]>({
     fetcher: fetchUnitTypes,
   });
   const unitTypeOptions = Array.isArray(utData)
-    ? utData.map((u) => ({ value: String(u.id), label: `${u.symbol} — ${u.name}` }))
+    ? utData.map((u) => ({ value: String(u.id), label: `${u.symbol} — ${u.name_uz ?? u.name}` }))
     : [];
 
   // "dona" ni default qilish
@@ -91,17 +93,17 @@ export default function ProductsPage() {
   const defaultUnitTypeId = donaOption?.value ?? "";
 
   const handleAddUnitType = async () => {
-    if (!utForm.name.trim() || !utForm.symbol.trim()) {
+    if (!utForm.name_uz.trim() || !utForm.symbol.trim()) {
       toast.error("Nom va belgi kiritish shart");
       return;
     }
     setUtSaving(true);
     try {
-      await axiosClient.post("/unit-type", utForm);
+      await axiosClient.post("/unit-type", { ...utForm, name: utForm.name_uz });
       toast.success("O'lchov birligi qo'shildi");
       refetchUt();
       closeUtModal();
-      setUtForm({ name: "", symbol: "" });
+      setUtForm({ name_uz: "", name_ru: "", symbol: "" });
     } catch (e: any) {
       toast.error(e?.response?.data?.message ?? "Xatolik yuz berdi");
     } finally {
@@ -171,7 +173,7 @@ export default function ProductsPage() {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => { setUtForm({ name: "", symbol: "" }); openUtModal(); }}
+            onClick={() => { setUtForm({ name_uz: "", name_ru: "", symbol: "" }); openUtModal(); }}
           >
             + O'lchov birligi qo'shish
           </Button>
@@ -185,7 +187,11 @@ export default function ProductsPage() {
               variant="primary"
               startIcon={<PlusIcon className="size-5 fill-white" />}
               onClick={() => {
-                setProduct({ ...emptyProduct, unit_type_id: defaultUnitTypeId });
+                setProduct({
+                  ...emptyProduct,
+                  unit_type_id: defaultUnitTypeId,
+                  category_id: activeCategoryFilter || "",
+                });
                 imageResultRef.current = null;
                 openModal();
               }}
@@ -204,6 +210,7 @@ export default function ProductsPage() {
               categoryOptions={category_options}
               autoExpandId={autoExpandId}
               onAutoExpandHandled={() => setAutoExpandId(null)}
+              onCategoryFilterChange={setActiveCategoryFilter}
             />
           )}
         </ComponentCard>
@@ -232,7 +239,14 @@ export default function ProductsPage() {
           <div className="p-6 lg:p-8">
             <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
               <div>
-                <Label>Nomi (O'zbek) *</Label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <Label>Nomi (O'zbek) *</Label>
+                  <TranslateButton
+                    source={Product.name_ru ?? ""}
+                    direction="ru->uz"
+                    onResult={(t) => setProduct({ ...Product, name_uz: t })}
+                  />
+                </div>
                 <Input
                   type="text"
                   placeholder="Masalan: Sement, Bo'yoq..."
@@ -241,7 +255,14 @@ export default function ProductsPage() {
                 />
               </div>
               <div>
-                <Label>Nomi (Ruscha)</Label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <Label>Nomi (Ruscha)</Label>
+                  <TranslateButton
+                    source={Product.name_uz ?? ""}
+                    direction="uz->ru"
+                    onResult={(t) => setProduct({ ...Product, name_ru: t })}
+                  />
+                </div>
                 <Input
                   type="text"
                   placeholder="Ruscha nomini kiriting"
@@ -255,6 +276,7 @@ export default function ProductsPage() {
                   options={category_options}
                   className="dark:bg-dark-900"
                   placeholder="Kategoriyani tanlang"
+                  defaultValue={Product.category_id}
                   onChange={(v) => setProduct({ ...Product, category_id: v })}
                 />
                 {!Product.category_id && (
@@ -323,16 +345,39 @@ export default function ProductsPage() {
           </div>
           <div className="flex flex-col gap-4 px-2">
             <div>
-              <Label>Nomi</Label>
+              <div className="flex items-center justify-between mb-1.5">
+                <Label>Nomi (O'zbek) *</Label>
+                <TranslateButton
+                  source={utForm.name_ru}
+                  direction="ru->uz"
+                  onResult={(t) => setUtForm({ ...utForm, name_uz: t })}
+                />
+              </div>
               <Input
                 type="text"
                 placeholder="Kilogramm, Litr, Metr..."
-                value={utForm.name}
-                onChange={(e) => setUtForm({ ...utForm, name: e.target.value })}
+                value={utForm.name_uz}
+                onChange={(e) => setUtForm({ ...utForm, name_uz: e.target.value })}
               />
             </div>
             <div>
-              <Label>Belgi (qisqa)</Label>
+              <div className="flex items-center justify-between mb-1.5">
+                <Label>Nomi (Ruscha)</Label>
+                <TranslateButton
+                  source={utForm.name_uz}
+                  direction="uz->ru"
+                  onResult={(t) => setUtForm({ ...utForm, name_ru: t })}
+                />
+              </div>
+              <Input
+                type="text"
+                placeholder="Килограмм, Литр, Метр..."
+                value={utForm.name_ru}
+                onChange={(e) => setUtForm({ ...utForm, name_ru: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Belgi (qisqa) *</Label>
               <Input
                 type="text"
                 placeholder="kg, L, m..."

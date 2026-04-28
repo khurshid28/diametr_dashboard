@@ -18,6 +18,7 @@ import CategorysTable, {
   CategoryItemProps,
 } from "../../components/tables/diametr/categoriesTable";
 import ImageField, { ImageFieldResult } from "../../components/common/ImageField";
+import TranslateButton from "../../components/common/TranslateButton";
 
 interface CategoryStat {
   id: number;
@@ -225,7 +226,14 @@ export default function CategorysPage() {
             <div className="px-2 overflow-y-auto custom-scrollbar">
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                 <div>
-                  <Label>Nomi (O'zbek)</Label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <Label>Nomi (O'zbek)</Label>
+                    <TranslateButton
+                      source={Category.name_ru ?? ""}
+                      direction="ru->uz"
+                      onResult={(t) => setCategory({ ...Category, name_uz: t })}
+                    />
+                  </div>
                   <Input
                     type="text"
                     placeholder="Uzbekcha nomini kiriting"
@@ -236,7 +244,14 @@ export default function CategorysPage() {
                   />
                 </div>
                 <div>
-                  <Label>Nomi (Ruscha)</Label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <Label>Nomi (Ruscha)</Label>
+                    <TranslateButton
+                      source={Category.name_uz ?? ""}
+                      direction="uz->ru"
+                      onResult={(t) => setCategory({ ...Category, name_ru: t })}
+                    />
+                  </div>
                   <Input
                     type="text"
                     placeholder="Ruscha nomini kiriting"

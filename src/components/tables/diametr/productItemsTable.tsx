@@ -23,7 +23,7 @@ export interface ProductItemRowProps {
   color?: string;
   size?: string;
   value?: number | null;
-  unit_type?: { id: number; name: string; symbol: string } | null;
+  unit_type?: { id: number; name: string; name_uz?: string | null; name_ru?: string | null; symbol: string } | null;
   product?: { id: number; name_uz?: string; name_ru?: string; name?: string } | null;
   product_id?: number;
   _count?: { shop_products?: number };

@@ -33,9 +33,9 @@ export default function ProductItemsPage() {
   const itemData: ProductItemRowProps[] = Array.isArray(data) ? data : [];
 
   const fetchUnitTypes = useCallback(() => axiosClient.get("/unit-type/all").then((res) => res.data), []);
-  const { data: utData } = useFetchWithLoader<{ id: number; name: string; symbol: string }[]>({ fetcher: fetchUnitTypes });
+  const { data: utData } = useFetchWithLoader<{ id: number; name: string; name_uz?: string | null; name_ru?: string | null; symbol: string }[]>({ fetcher: fetchUnitTypes });
   const unitTypeOptions = Array.isArray(utData)
-    ? utData.map((u) => ({ value: String(u.id), label: `${u.name} (${u.symbol})` }))
+    ? utData.map((u) => ({ value: String(u.id), label: `${u.name_uz ?? u.name} (${u.symbol})` }))
     : [];
 
   const fetchProducts = useCallback(() => axiosClient.get("/product/all").then((res) => res.data?.data ?? res.data), []);

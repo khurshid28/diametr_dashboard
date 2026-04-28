@@ -1,4 +1,4 @@
-﻿import TableActions from "./TableActions";
+﻿import TableActions, { ConfirmDeleteModal } from "./TableActions";
 import TableToolbar from "./TableToolbar";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../ui/table";
 import Moment from "moment";
@@ -14,6 +14,7 @@ import { toast } from "../../ui/toast";
 import * as XLSX from "xlsx";
 import ImageField, { ImageFieldResult } from "../../common/ImageField";
 import ColorPalette from "../../common/ColorPalette";
+import TranslateButton from "../../common/TranslateButton";
 
 /* ─── Types ────────────────────────────────────────────────── */
 export interface VariantProps {
@@ -24,7 +25,7 @@ export interface VariantProps {
   color?: string;
   size?: string;
   value?: number | string | null;
-  unit_type?: { id: number; name: string; symbol: string } | null;
+  unit_type?: { id: number; name: string; name_uz?: string | null; name_ru?: string | null; symbol: string } | null;
   _count?: { shop_products?: number };
   createdt?: string;
   createdAt?: string;
@@ -38,7 +39,7 @@ export interface ProductItemProps {
   image?: string;
   category?: { id: number; name_uz?: string; name?: string };
   categoryId?: number;
-  unit_type?: { id: number; name: string; symbol: string } | null;
+  unit_type?: { id: number; name: string; name_uz?: string | null; name_ru?: string | null; symbol: string } | null;
   unit_type_id?: number;
   items?: VariantProps[];
   product_items?: VariantProps[];
@@ -57,6 +58,7 @@ export default function ProductsTable({
   categoryOptions = [],
   autoExpandId,
   onAutoExpandHandled,
+  onCategoryFilterChange,
 }: {
   data: ProductItemProps[];
   onRefetch?: () => void;
@@ -64,6 +66,7 @@ export default function ProductsTable({
   categoryOptions: { value: string; label: string }[];
   autoExpandId?: number | null;
   onAutoExpandHandled?: () => void;
+  onCategoryFilterChange?: (categoryId: string) => void;
 }) {
   const [tableData, setTableData] = useState(data);
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -87,14 +90,20 @@ export default function ProductsTable({
   const varImgKey = useRef(0);
   const [varImgChanged, setVarImgChanged] = useState(false);
 
+  /* variant delete confirm */
+  const [variantToDelete, setVariantToDelete] = useState<VariantProps | null>(null);
+
   /* table state */
-  const [optionValue, setOptionValue] = useState("10");
+  const [optionValue, setOptionValue] = useState("20");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [categoryFilter, setCategoryFilterState] = useState<string>(""); // "" = hammasi
+  const setCategoryFilter = (v: string) => { setCategoryFilterState(v); onCategoryFilterChange?.(v); };
+  const [groupByCategory, setGroupByCategory] = useState(false);
   const staticUrl = import.meta.env.VITE_STATIC_PATH ?? "";
 
   useEffect(() => { setTableData(data); setCurrentPage(1); }, [data]);
-  useEffect(() => { setCurrentPage(1); }, [optionValue]);
+  useEffect(() => { setCurrentPage(1); }, [optionValue, categoryFilter, groupByCategory]);
 
   // Auto-expand newly created product
   useEffect(() => {
@@ -104,19 +113,76 @@ export default function ProductsTable({
     }
   }, [autoExpandId, data]);
 
-  const filteredData = search.trim() === ""
-    ? tableData
-    : tableData.filter((s) => {
-        const q = search.toLowerCase();
-        return (
-          (s.name ?? "").toLowerCase().includes(q) ||
-          (s.name_uz ?? "").toLowerCase().includes(q) ||
-          (s.name_ru ?? "").toLowerCase().includes(q) ||
-          (s.category?.name_uz ?? "").toLowerCase().includes(q)
-        );
-      });
-  const maxPage = Math.ceil(filteredData.length / +optionValue);
-  const currentItems = filteredData.slice((currentPage - 1) * +optionValue, currentPage * +optionValue);
+  // Kategoriya bo'yicha mahsulotlar soni (chip ko'rsatish uchun)
+  const categoryCounts = (() => {
+    const m = new Map<string, number>();
+    tableData.forEach((p) => {
+      const id = p.category?.id ? String(p.category.id) : (p.categoryId ? String(p.categoryId) : "");
+      if (id) m.set(id, (m.get(id) ?? 0) + 1);
+    });
+    return m;
+  })();
+
+  const filteredData = tableData.filter((s) => {
+    // Kategoriya filter
+    if (categoryFilter) {
+      const cid = s.category?.id ? String(s.category.id) : (s.categoryId ? String(s.categoryId) : "");
+      if (cid !== categoryFilter) return false;
+    }
+    // Search filter
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      return (
+        (s.name ?? "").toLowerCase().includes(q) ||
+        (s.name_uz ?? "").toLowerCase().includes(q) ||
+        (s.name_ru ?? "").toLowerCase().includes(q) ||
+        (s.category?.name_uz ?? "").toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
+  // Guruhlash yoqilganda: butun filteredData bo'yicha guruhlaymiz, pagination o'chadi
+  const maxPage = groupByCategory
+    ? 1
+    : Math.max(1, Math.ceil(filteredData.length / +optionValue));
+  const currentItems = groupByCategory
+    ? filteredData
+    : filteredData.slice((currentPage - 1) * +optionValue, currentPage * +optionValue);
+
+  // Group by category: filteredData'ning hammasini kategoriya bo'yicha guruhlash
+  const groupedItems = (() => {
+    if (!groupByCategory) return null;
+    const groups = new Map<string, { label: string; items: ProductItemProps[] }>();
+    filteredData.forEach((p) => {
+      const id = p.category?.id ? String(p.category.id) : (p.categoryId ? String(p.categoryId) : "none");
+      const label = p.category?.name_uz ?? p.category?.name ?? "Kategoriyasiz";
+      if (!groups.has(id)) groups.set(id, { label, items: [] });
+      groups.get(id)!.items.push(p);
+    });
+    // Guruhlarni kategoriya ID bo'yicha o'sish tartibida saralash
+    // ("none" guruhi — kategoriyasiz mahsulotlar — eng oxirida)
+    return Array.from(groups.entries()).sort((a, b) => {
+      if (a[0] === "none") return 1;
+      if (b[0] === "none") return -1;
+      return Number(a[0]) - Number(b[0]);
+    });
+  })();
+
+  // Raqamli pagination: ko'rsatish kerak bo'lgan sahifalarni hisoblash
+  const pageNumbers = (() => {
+    const pages: (number | "...")[] = [];
+    const total = maxPage;
+    const cur = currentPage;
+    const window = 1; // joriy sahifa atrofidagi sahifalar
+    for (let i = 1; i <= total; i++) {
+      if (i === 1 || i === total || (i >= cur - window && i <= cur + window)) {
+        pages.push(i);
+      } else if (pages[pages.length - 1] !== "...") {
+        pages.push("...");
+      }
+    }
+    return pages;
+  })();
 
   /* ─── Product CRUD ────────────────────────────────────── */
   const startEditProduct = (item: ProductItemProps) => {
@@ -270,13 +336,20 @@ export default function ProductsTable({
     }
   };
 
-  const deleteVariant = async (id: number) => {
+  const requestDeleteVariant = (v: VariantProps) => {
+    setVariantToDelete(v);
+  };
+
+  const confirmDeleteVariant = async () => {
+    if (!variantToDelete) return;
+    const id = variantToDelete.id;
+    setVariantToDelete(null);
     try {
       await axiosClient.delete(`/product-item/${id}`);
       toast.success("Variant o'chirildi");
       onRefetch?.();
-    } catch {
-      toast.error("Xatolik yuz berdi");
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? "Xatolik yuz berdi");
     }
   };
 
@@ -310,7 +383,67 @@ export default function ProductsTable({
           showValue={optionValue}
           onShowChange={(v) => { setOptionValue(v); setCurrentPage(1); }}
           onExport={handleExport}
+          action={
+            <button
+              onClick={() => setGroupByCategory((g) => !g)}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition-all ${
+                groupByCategory
+                  ? "bg-brand-50 text-brand-700 border-brand-200 dark:bg-brand-900/20 dark:text-brand-400 dark:border-brand-800/40"
+                  : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50 dark:bg-white/[0.03] dark:text-gray-400 dark:border-white/[0.08] dark:hover:bg-white/[0.05]"
+              }`}
+              title="Kategoriya bo'yicha guruhlash"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 6h18M3 12h18M3 18h18" />
+              </svg>
+              {groupByCategory ? "Guruhlash: ON" : "Guruhlash"}
+            </button>
+          }
         />
+        {/* Kategoriya chip filter */}
+        {categoryOptions.length > 0 && (
+          <div className="px-4 py-2.5 flex flex-wrap gap-1.5 border-b border-gray-100 dark:border-white/[0.05] bg-gray-50/50 dark:bg-white/[0.01]">
+            <button
+              onClick={() => setCategoryFilter("")}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                categoryFilter === ""
+                  ? "bg-brand-500 text-white border-brand-500 shadow-sm shadow-brand-500/25"
+                  : "bg-white text-gray-600 border-gray-200 hover:bg-gray-100 hover:border-gray-300 dark:bg-white/[0.03] dark:text-gray-400 dark:border-white/[0.08] dark:hover:bg-white/[0.05]"
+              }`}
+            >
+              Hammasi
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                categoryFilter === "" ? "bg-white/25 text-white" : "bg-gray-100 text-gray-500 dark:bg-white/[0.05] dark:text-gray-400"
+              }`}>
+                {tableData.length}
+              </span>
+            </button>
+            {categoryOptions.map((c) => {
+              const count = categoryCounts.get(c.value) ?? 0;
+              const active = categoryFilter === c.value;
+              return (
+                <button
+                  key={c.value}
+                  onClick={() => setCategoryFilter(c.value)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                    active
+                      ? "bg-brand-500 text-white border-brand-500 shadow-sm shadow-brand-500/25"
+                      : count === 0
+                      ? "bg-white text-gray-400 border-gray-200 hover:bg-gray-100 dark:bg-white/[0.03] dark:text-gray-500 dark:border-white/[0.08]"
+                      : "bg-white text-gray-600 border-gray-200 hover:bg-gray-100 hover:border-gray-300 dark:bg-white/[0.03] dark:text-gray-400 dark:border-white/[0.08] dark:hover:bg-white/[0.05]"
+                  }`}
+                >
+                  {c.label}
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                    active ? "bg-white/25 text-white" : "bg-gray-100 text-gray-500 dark:bg-white/[0.05] dark:text-gray-400"
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
         <Table>
           <TableHeader>
             <TableRow>
@@ -330,7 +463,24 @@ export default function ProductsTable({
               <TableRow>
                 <TableCell colSpan={9} className="py-8 text-center text-gray-400">Ma'lumot yo'q</TableCell>
               </TableRow>
-            ) : currentItems.map((item, idx) => {
+            ) : (groupedItems ?? [["__flat__", { label: "", items: currentItems }] as [string, { label: string; items: ProductItemProps[] }]]).map(([gid, group]) => (
+              <Fragment key={gid}>
+                {groupedItems && (
+                  <TableRow className="bg-gradient-to-r from-brand-50/60 to-transparent dark:from-brand-900/10">
+                    <TableCell colSpan={9} className="px-5 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-brand-600 dark:text-brand-400">
+                          <path d="M3 7h18M3 12h18M3 17h10" />
+                        </svg>
+                        <span className="text-sm font-bold text-gray-800 dark:text-white">{group.label}</span>
+                        <span className="text-xs font-semibold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/20 px-2 py-0.5 rounded-full">
+                          {group.items.length} ta
+                        </span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+                {group.items.map((item, idx) => {
               const isExpanded = expandedId === item.id;
               const variants = item.items ?? item.product_items ?? [];
               return (
@@ -372,7 +522,7 @@ export default function ProductsTable({
                     <TableCell className="px-5 py-4">
                       {item.unit_type ? (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-brand-50 dark:bg-brand-900/20 text-xs font-semibold text-brand-700 dark:text-brand-400 border border-brand-100 dark:border-brand-800/30">
-                          {item.unit_type.symbol} — {item.unit_type.name}
+                          {item.unit_type.symbol} — {item.unit_type.name_uz ?? item.unit_type.name}
                         </span>
                       ) : <span className="text-gray-300 dark:text-gray-600">—</span>}
                     </TableCell>
@@ -502,27 +652,33 @@ export default function ProductsTable({
                                           </span>
                                         </td>
                                         <td className="px-4 py-3">
-                                          <div className="flex items-center gap-1">
+                                          <div className="flex items-center gap-1.5">
                                             <button
                                               onClick={() => startEditVariant(v, item.id)}
-                                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400
-                                                hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/20 dark:hover:text-brand-400
+                                              className="group inline-flex items-center justify-center w-8 h-8 rounded-lg
+                                                bg-blue-50 text-blue-600 border border-blue-100
+                                                hover:bg-blue-500 hover:text-white hover:border-blue-500 hover:shadow-md hover:shadow-blue-500/30
+                                                dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20
+                                                dark:hover:bg-blue-500 dark:hover:text-white dark:hover:border-blue-500
                                                 transition-all duration-150"
                                               title="Tahrirlash"
                                             >
-                                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                               </svg>
                                             </button>
                                             <button
-                                              onClick={() => deleteVariant(v.id)}
-                                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400
-                                                hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 dark:hover:text-red-400
+                                              onClick={() => requestDeleteVariant(v)}
+                                              className="group inline-flex items-center justify-center w-8 h-8 rounded-lg
+                                                bg-red-50 text-red-600 border border-red-100
+                                                hover:bg-red-500 hover:text-white hover:border-red-500 hover:shadow-md hover:shadow-red-500/30
+                                                dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20
+                                                dark:hover:bg-red-500 dark:hover:text-white dark:hover:border-red-500
                                                 transition-all duration-150"
                                               title="O'chirish"
                                             >
-                                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                                                 <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14" />
                                               </svg>
                                             </button>
@@ -542,15 +698,56 @@ export default function ProductsTable({
                 </Fragment>
               );
             })}
+              </Fragment>
+            ))}
           </TableBody>
         </Table>
-        <div className="px-5 py-3 flex justify-between items-center border-t border-gray-100 dark:border-white/[0.05]">
+        <div className="px-5 py-3 flex flex-wrap gap-3 justify-between items-center border-t border-gray-100 dark:border-white/[0.05]">
           <span className="text-sm text-gray-500 dark:text-gray-400">
             {filteredData.length} ta ichidan {Math.min((currentPage - 1) * +optionValue + 1, filteredData.length)}–{Math.min(currentPage * +optionValue, filteredData.length)} ko'rsatilmoqda
           </span>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" disabled={currentPage <= 1} onClick={() => setCurrentPage((p) => p - 1)}>Oldingi</Button>
-            <Button size="sm" variant="outline" disabled={currentPage >= maxPage} onClick={() => setCurrentPage((p) => p + 1)}>Keyingi</Button>
+          <div className="flex items-center gap-1">
+            <button
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage(1)}
+              className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/[0.05] disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+              title="Birinchi"
+            >«</button>
+            <button
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage((p) => p - 1)}
+              className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/[0.05] disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+              title="Oldingi"
+            >‹</button>
+            {pageNumbers.map((p, i) =>
+              p === "..." ? (
+                <span key={`dots-${i}`} className="px-1 text-gray-400 text-xs">…</span>
+              ) : (
+                <button
+                  key={p}
+                  onClick={() => setCurrentPage(p as number)}
+                  className={`inline-flex items-center justify-center min-w-8 h-8 px-2 rounded-lg text-xs font-bold transition-all ${
+                    currentPage === p
+                      ? "bg-brand-500 text-white shadow-sm shadow-brand-500/25"
+                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.05]"
+                  }`}
+                >
+                  {p}
+                </button>
+              )
+            )}
+            <button
+              disabled={currentPage >= maxPage}
+              onClick={() => setCurrentPage((p) => p + 1)}
+              className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/[0.05] disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+              title="Keyingi"
+            >›</button>
+            <button
+              disabled={currentPage >= maxPage}
+              onClick={() => setCurrentPage(maxPage)}
+              className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/[0.05] disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+              title="Oxirgi"
+            >»</button>
           </div>
         </div>
       </div>
@@ -574,11 +771,25 @@ export default function ProductsTable({
           <div className="p-6">
             <div className="flex flex-col gap-4">
               <div>
-                <Label>Nomi (O'zbek)</Label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <Label>Nomi (O'zbek)</Label>
+                  <TranslateButton
+                    source={pForm.name_ru}
+                    direction="ru->uz"
+                    onResult={(t) => setPForm({ ...pForm, name_uz: t })}
+                  />
+                </div>
                 <Input type="text" placeholder="Uzbekcha nomi" value={pForm.name_uz} onChange={(e) => setPForm({ ...pForm, name_uz: e.target.value })} />
               </div>
               <div>
-                <Label>Nomi (Ruscha)</Label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <Label>Nomi (Ruscha)</Label>
+                  <TranslateButton
+                    source={pForm.name_uz}
+                    direction="uz->ru"
+                    onResult={(t) => setPForm({ ...pForm, name_ru: t })}
+                  />
+                </div>
                 <Input type="text" placeholder="Ruscha nomi" value={pForm.name_ru} onChange={(e) => setPForm({ ...pForm, name_ru: e.target.value })} />
               </div>
               {categoryOptions.length > 0 && (
@@ -730,6 +941,20 @@ export default function ProductsTable({
           </div>
         </div>
       </Modal>
+
+      {/* Variant delete confirm */}
+      {variantToDelete && (
+        <ConfirmDeleteModal
+          title="Variantni o'chirishni tasdiqlaysizmi?"
+          desc={
+            (variantToDelete._count?.shop_products ?? 0) > 0
+              ? `Diqqat! Bu variant ${variantToDelete._count?.shop_products} ta do'kon mahsulotida ishlatilgan. O'chirilsa, do'konlardagi tegishli mahsulotlar ham o'chiriladi. Davom etilsinmi?`
+              : "Bu amalni qaytarib bo'lmaydi."
+          }
+          onConfirm={confirmDeleteVariant}
+          onCancel={() => setVariantToDelete(null)}
+        />
+      )}
     </div>
   );
 }

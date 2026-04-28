@@ -13,11 +13,12 @@ import { useFetchWithLoader } from "../../hooks/useFetchWithLoader";
 import { SkeletonTable } from "../../components/spinner/load-spinner";
 import { usePolling } from "../../hooks/usePolling";
 import UnitTypesTable, { UnitTypeItemProps } from "../../components/tables/diametr/unitTypesTable";
+import TranslateButton from "../../components/common/TranslateButton";
 import { toast } from "../../components/ui/toast";
 
 export default function UnitTypesPage() {
   const { isOpen, openModal, closeModal } = useModal();
-  const [form, setForm] = useState({ name: "", symbol: "" });
+  const [form, setForm] = useState({ name_uz: "", name_ru: "", symbol: "" });
   const [saving, setSaving] = useState(false);
 
   const fetchUnitTypes = useCallback(
@@ -32,17 +33,17 @@ export default function UnitTypesPage() {
   const unitTypeData: UnitTypeItemProps[] = Array.isArray(data) ? data : [];
 
   const handleAdd = async () => {
-    if (!form.name.trim() || !form.symbol.trim()) {
+    if (!form.name_uz.trim() || !form.symbol.trim()) {
       toast.error("Nom va belgi kiritish shart");
       return;
     }
     setSaving(true);
     try {
-      await axiosClient.post("/unit-type", form);
+      await axiosClient.post("/unit-type", { ...form, name: form.name_uz });
       toast.success("O'lchov birligi qo'shildi");
       refetch();
       closeModal();
-      setForm({ name: "", symbol: "" });
+      setForm({ name_uz: "", name_ru: "", symbol: "" });
     } catch (e: any) {
       toast.error(e?.response?.data?.message ?? "Xatolik yuz berdi");
     } finally {
@@ -63,7 +64,7 @@ export default function UnitTypesPage() {
               size="sm"
               variant="primary"
               startIcon={<PlusIcon className="size-5 fill-white" />}
-              onClick={() => { setForm({ name: "", symbol: "" }); openModal(); }}
+              onClick={() => { setForm({ name_uz: "", name_ru: "", symbol: "" }); openModal(); }}
             >
               Qo'shish
             </Button>
@@ -88,16 +89,39 @@ export default function UnitTypesPage() {
           </div>
           <div className="flex flex-col gap-4 px-2">
             <div>
-              <Label>Nomi</Label>
+              <div className="flex items-center justify-between mb-1.5">
+                <Label>Nomi (O'zbek) *</Label>
+                <TranslateButton
+                  source={form.name_ru}
+                  direction="ru->uz"
+                  onResult={(t) => setForm({ ...form, name_uz: t })}
+                />
+              </div>
               <Input
                 type="text"
                 placeholder="Kilogramm, Litr, Metr..."
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                value={form.name_uz}
+                onChange={(e) => setForm({ ...form, name_uz: e.target.value })}
               />
             </div>
             <div>
-              <Label>Belgi (qisqa)</Label>
+              <div className="flex items-center justify-between mb-1.5">
+                <Label>Nomi (Ruscha)</Label>
+                <TranslateButton
+                  source={form.name_uz}
+                  direction="uz->ru"
+                  onResult={(t) => setForm({ ...form, name_ru: t })}
+                />
+              </div>
+              <Input
+                type="text"
+                placeholder="Килограмм, Литр, Метр..."
+                value={form.name_ru}
+                onChange={(e) => setForm({ ...form, name_ru: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Belgi (qisqa) *</Label>
               <Input
                 type="text"
                 placeholder="kg, L, m..."

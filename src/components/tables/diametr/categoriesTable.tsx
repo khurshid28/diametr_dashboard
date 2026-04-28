@@ -14,6 +14,7 @@ import axiosClient from "../../../service/axios.service";
 import { toast } from "../../ui/toast";
 import * as XLSX from "xlsx";
 import ImageField, { ImageFieldResult } from "../../common/ImageField";
+import TranslateButton from "../../common/TranslateButton";
 
 export interface CategoryItemProps {
   id: number;
@@ -152,11 +153,25 @@ export default function CategorysTable({ data, onRefetch }: { data: CategoryItem
           </div>
           <div className="flex flex-col gap-4 px-2">
             <div>
-              <Label>Nomi (O'zbek)</Label>
+              <div className="flex items-center justify-between mb-1.5">
+                <Label>Nomi (O'zbek)</Label>
+                <TranslateButton
+                  source={form.name_ru}
+                  direction="ru->uz"
+                  onResult={(t) => setForm({ ...form, name_uz: t })}
+                />
+              </div>
               <Input type="text" placeholder="Uzbekcha nomi" value={form.name_uz} onChange={(e) => setForm({ ...form, name_uz: e.target.value })} />
             </div>
             <div>
-              <Label>Nomi (Ruscha)</Label>
+              <div className="flex items-center justify-between mb-1.5">
+                <Label>Nomi (Ruscha)</Label>
+                <TranslateButton
+                  source={form.name_uz}
+                  direction="uz->ru"
+                  onResult={(t) => setForm({ ...form, name_ru: t })}
+                />
+              </div>
               <Input type="text" placeholder="Ruscha nomi" value={form.name_ru} onChange={(e) => setForm({ ...form, name_ru: e.target.value })} />
             </div>
             <ImageField key={imgKey.current} label="Rasm (ixtiyoriy)" onChange={(r) => { imageResultRef.current = r; }} />
