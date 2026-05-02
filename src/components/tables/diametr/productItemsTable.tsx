@@ -42,7 +42,7 @@ export default function ProductItemsTable({
 }: {
   data: ProductItemRowProps[];
   onRefetch?: () => void;
-  unitTypes: { value: string; label: string }[];
+  unitTypes: { value: string; label: string; symbol?: string }[];
   products: { value: string; label: string }[];
 }) {
   const [tableData, setTableData] = useState(data);
@@ -56,6 +56,17 @@ export default function ProductItemsTable({
   const imageResultRef = useRef<ImageFieldResult | null>(null);
   const imgKey = useRef(0);
   const staticUrl = import.meta.env.VITE_STATIC_PATH ?? "";
+
+  const selectedUnitType = unitTypes.find((u) => u.value === form.unit_type_id);
+  const selectedUnitSymbol = selectedUnitType?.symbol ?? "";
+  const isDimensionUnit = selectedUnitSymbol === "x*y" || selectedUnitSymbol === "x*y*z";
+  const selectedSizePlaceholder = selectedUnitSymbol === "x*y"
+    ? "120x60, 50x30 ..."
+    : selectedUnitSymbol === "x*y*z"
+      ? "120x60x30, 2x2x2 ..."
+      : "120x80, XL, 50x50 sm...";
+  const selectedSizeLabel = isDimensionUnit ? "O'lcham (majburiy)" : "O'lcham (ixtiyoriy)";
+  const selectedValueLabel = isDimensionUnit ? "Qiymat (miqdor, ixtiyoriy)" : "Qiymat (miqdor)";
 
   useEffect(() => { setTableData(data); setCurrentPage(1); }, [data]);
   useEffect(() => { setCurrentPage(1); }, [optionValue]);
@@ -110,7 +121,7 @@ export default function ProductItemsTable({
         desc: form.desc || undefined,
         color: form.color || undefined,
         size: form.size || undefined,
-        value: form.value ? Number(form.value) : undefined,
+        value: isDimensionUnit ? undefined : form.value ? Number(form.value) : undefined,
         unit_type_id: form.unit_type_id ? Number(form.unit_type_id) : undefined,
         product_id: form.product_id ? Number(form.product_id) : undefined,
       };
@@ -267,13 +278,23 @@ export default function ProductItemsTable({
               <Label>O'lchov birligi</Label>
               <Select options={unitTypes} value={form.unit_type_id} onChange={(v) => setForm({ ...form, unit_type_id: v })} placeholder="kg, L, m..." />
             </div>
-            <div>
-              <Label>Qiymat (miqdor)</Label>
-              <Input type="number" placeholder="1.5, 2, 0.5..." value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} />
+            <div className="lg:col-span-2 text-sm text-gray-500 dark:text-gray-400">
+              {selectedUnitSymbol
+                ? isDimensionUnit
+                  ? `Tanlangan birlik: ${selectedUnitSymbol}. Iltimos, o'lchamni mos ravishda kiriting.`
+                  : `Tanlangan birlik: ${selectedUnitSymbol}. Qiymat raqamli bo'lishi kerak.`
+                : "O'lchov birligini tanlang."
+              }
             </div>
+            {!isDimensionUnit && (
+              <div>
+                <Label>{selectedValueLabel}</Label>
+                <Input type="number" placeholder="1.5, 2, 0.5..." value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} />
+              </div>
+            )}
             <div>
-              <Label>O'lcham (size)</Label>
-              <Input type="text" placeholder="120x80, XL, 50x50 sm..." value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value })} />
+              <Label>{selectedSizeLabel}</Label>
+              <Input type="text" placeholder={selectedSizePlaceholder} value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value })} />
             </div>
             <ColorPalette
               value={form.color}

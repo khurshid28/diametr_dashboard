@@ -35,8 +35,21 @@ export default function ProductItemsPage() {
   const fetchUnitTypes = useCallback(() => axiosClient.get("/unit-type/all").then((res) => res.data), []);
   const { data: utData } = useFetchWithLoader<{ id: number; name: string; name_uz?: string | null; name_ru?: string | null; symbol: string }[]>({ fetcher: fetchUnitTypes });
   const unitTypeOptions = Array.isArray(utData)
-    ? utData.map((u) => ({ value: String(u.id), label: `${u.name_uz ?? u.name} (${u.symbol})` }))
+    ? utData.map((u) => ({ value: String(u.id), symbol: u.symbol, label: `${u.name_uz ?? u.name} (${u.symbol})` }))
     : [];
+
+  const selectedUnitType = Array.isArray(utData) && form.unit_type_id
+    ? utData.find((u) => String(u.id) === form.unit_type_id)
+    : undefined;
+  const selectedUnitSymbol = selectedUnitType?.symbol ?? "";
+  const isDimensionUnit = selectedUnitSymbol === "x*y" || selectedUnitSymbol === "x*y*z";
+  const selectedSizePlaceholder = selectedUnitSymbol === "x*y"
+    ? "120x60, 50x30 ..."
+    : selectedUnitSymbol === "x*y*z"
+      ? "120x60x30, 2x2x2 ..."
+      : "120x80, XL, 50x50 sm...";
+  const selectedSizeLabel = isDimensionUnit ? "O'lcham (majburiy)" : "O'lcham (ixtiyoriy)";
+  const selectedValueLabel = isDimensionUnit ? "Qiymat (miqdor, ixtiyoriy)" : "Qiymat";
 
   const fetchProducts = useCallback(() => axiosClient.get("/product/all").then((res) => res.data?.data ?? res.data), []);
   const { data: prodData } = useFetchWithLoader<{ id: number; name_uz?: string; name?: string }[]>({ fetcher: fetchProducts });
@@ -67,7 +80,7 @@ export default function ProductItemsPage() {
         desc: form.desc || undefined,
         color: form.color || undefined,
         size: form.size || undefined,
-        value: form.value ? Number(form.value) : undefined,
+        value: isDimensionUnit ? undefined : form.value ? Number(form.value) : undefined,
         unit_type_id: form.unit_type_id ? Number(form.unit_type_id) : undefined,
         product_id: Number(form.product_id),
         image: imageFilename,
@@ -135,13 +148,23 @@ export default function ProductItemsPage() {
               <Label>O'lchov birligi</Label>
               <Select options={unitTypeOptions} value={form.unit_type_id} onChange={(v) => setForm({ ...form, unit_type_id: v })} placeholder="kg, L, m..." />
             </div>
-            <div>
-              <Label>Qiymat</Label>
-              <Input type="number" placeholder="1.5, 2, 0.5..." value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} />
+            <div className="lg:col-span-2 text-sm text-gray-500 dark:text-gray-400">
+              {selectedUnitSymbol
+                ? isDimensionUnit
+                  ? `Tanlangan birlik: ${selectedUnitSymbol}. Iltimos, o'lchamni mos ravishda kiriting.`
+                  : `Tanlangan birlik: ${selectedUnitSymbol}. Qiymat raqamli bo'lishi kerak.`
+                : "O'lchov birligini tanlang."
+              }
             </div>
+            {!isDimensionUnit && (
+              <div>
+                <Label>{selectedValueLabel}</Label>
+                <Input type="number" placeholder="1.5, 2, 0.5..." value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} />
+              </div>
+            )}
             <div>
-              <Label>O'lcham (size)</Label>
-              <Input type="text" placeholder="120x80, XL, 50x50 sm..." value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value })} />
+              <Label>{selectedSizeLabel}</Label>
+              <Input type="text" placeholder={selectedSizePlaceholder} value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value })} />
             </div>
             <ColorPalette
               value={form.color}
