@@ -57,8 +57,9 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     label: "Do'konlar",
     key: "shops",
     items: [
-      { icon: <ShopIcon />,      name: "Do'konlar",  path: "/shops" },
-      { icon: <LocationsIcon />, name: "Viloyatlar", path: "/regions" },
+      { icon: <LocationsIcon />,  name: "Regionlar",         path: "/regions" },
+      { icon: <ShopIcon />,       name: "Do'konlar",         path: "/shops" },
+      { icon: <UserCircleIcon />, name: "Do'kon Adminlari",  path: "/admins" },
     ],
   },
   {
@@ -90,9 +91,8 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     label: "Boshqaruv",
     key: "management",
     items: [
-      { icon: <GroupIcon />,      name: "Foydalanuvchilar", path: "/users" },
-      { icon: <UserCircleIcon />, name: "Do'kon Adminlari", path: "/admins" },
-      { icon: <CardIcon />,       name: "Obunalar",         path: "/subscriptions" },
+      { icon: <GroupIcon />, name: "Foydalanuvchilar", path: "/users" },
+      { icon: <CardIcon />,  name: "Obunalar",         path: "/subscriptions" },
     ],
   },
 ];

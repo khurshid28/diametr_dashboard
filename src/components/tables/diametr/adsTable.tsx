@@ -36,7 +36,7 @@ const showOptions = [
 const typeOptions = [
   { value: "SHOP", label: "Do'kon (SHOP)" },
   { value: "WORKER", label: "Ishchi (WORKER)" },
-  { value: "REGION", label: "Hudud (REGION)" },
+  { value: "REGION", label: "Region (REGION)" },
   { value: "PRODUCT", label: "Mahsulot (PRODUCT)" },
 ];
 const emptyForm = { title: "", subtitle: "", expired: "", type: "SHOP" };

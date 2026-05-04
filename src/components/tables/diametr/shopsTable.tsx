@@ -31,6 +31,8 @@ export interface ShopItemProps {
   balance?: number;
   work_status?: string;
   auto_payment?: boolean;
+  lat?: number | null;
+  lon?: number | null;
 }
 
 const showOptions = [{ value: "10", label: "10" }, { value: "20", label: "20" }, { value: "50", label: "50" }];
@@ -58,7 +60,9 @@ export default function ShopsTable({ data, onRefetch }: { data: ShopItemProps[];
   const [tableData, setTableData] = useState(data);
   const { isOpen, openModal, closeModal } = useModal();
   const [editItem, setEditItem] = useState<ShopItemProps | null>(null);
-  const [form, setForm] = useState({ name: "", region_id: "", inn: "", address: "", delivery_amount: "", expired: "", auto_payment: true });
+  const [form, setForm] = useState({ name: "", region_id: "", inn: "", address: "", delivery_amount: "", expired: "", auto_payment: true, lat: "", lon: "" });
+  const [bonusDays, setBonusDays] = useState(0);
+  const [cancelSub, setCancelSub] = useState(false);
   const [saving, setSaving] = useState(false);
   const [optionValue, setOptionValue] = useState("10");
   const [search, setSearch] = useState("");
@@ -81,6 +85,8 @@ export default function ShopsTable({ data, onRefetch }: { data: ShopItemProps[];
 
   const openEdit = (item: ShopItemProps) => {
     setEditItem(item);
+    setBonusDays(0);
+    setCancelSub(false);
     setForm({
       name: item.name ?? "",
       region_id: item.region?.id ? String(item.region.id) : (item.regionId ? String(item.regionId) : ""),
@@ -89,6 +95,8 @@ export default function ShopsTable({ data, onRefetch }: { data: ShopItemProps[];
       delivery_amount: item.delivery_amount != null ? String(item.delivery_amount) : "",
       expired: item.expired ? Moment(item.expired).format("YYYY-MM-DD") : "",
       auto_payment: item.auto_payment !== false,
+      lat: item.lat != null ? String(item.lat) : "",
+      lon: item.lon != null ? String(item.lon) : "",
     });
     openModal();
   };
@@ -99,7 +107,15 @@ export default function ShopsTable({ data, onRefetch }: { data: ShopItemProps[];
       const payload: any = { name: form.name, inn: form.inn, address: form.address };
       if (form.region_id) payload.region_id = Number(form.region_id);
       if (form.delivery_amount) payload.delivery_amount = Number(form.delivery_amount);
-      if (form.expired) payload.expired = form.expired;
+      if (cancelSub) {
+        payload.expired = Moment().format("YYYY-MM-DD");
+      } else if (bonusDays > 0) {
+        const baseMs = editItem?.expired ? new Date(editItem.expired).getTime() : 0;
+        const startMs = Math.max(Date.now(), baseMs);
+        payload.expired = Moment(startMs).add(bonusDays, "days").format("YYYY-MM-DD");
+      }
+      if (form.lat.trim() !== "") payload.lat = Number(form.lat);
+      if (form.lon.trim() !== "") payload.lon = Number(form.lon);
       if (editItem) {
         await axiosClient.put(`/shop/${editItem.id}`, payload);
         // Update auto_payment separately
@@ -133,7 +149,7 @@ export default function ShopsTable({ data, onRefetch }: { data: ShopItemProps[];
   const handleExport = () => {
     const ws = XLSX.utils.json_to_sheet(tableData.map((s) => ({
       ID: s.id, Nomi: s.name ?? "", INN: s.inn ?? "", Manzil: s.address ?? "",
-      Viloyat: s.region?.name ?? "", "Yetkazish narxi": s.delivery_amount ?? "",
+      Region: s.region?.name ?? "", "Yetkazish narxi": s.delivery_amount ?? "",
       "Tovarlar soni": s.product_count ?? 0, "Skladda": s.total_stock ?? 0,
       "Umumiy qiymati": s.total_value ?? 0, "Balans": s.balance ?? 0,
       "Holat": s.work_status ?? "", "Avto to'lov": s.auto_payment !== false ? "Ha" : "Yo'q",
@@ -156,7 +172,7 @@ export default function ShopsTable({ data, onRefetch }: { data: ShopItemProps[];
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Rasm</TableCell>
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Nomi</TableCell>
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Holat</TableCell>
-              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Viloyat</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Region</TableCell>
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Balans</TableCell>
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Muddati</TableCell>
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Tovarlar</TableCell>
@@ -306,7 +322,7 @@ export default function ShopsTable({ data, onRefetch }: { data: ShopItemProps[];
               </div>
               {regionOptions.length > 0 && (
                 <div>
-                  <Label>Viloyat</Label>
+                  <Label>Region</Label>
                   <Select options={regionOptions} defaultValue={form.region_id} onChange={(v) => setForm({ ...form, region_id: v })} />
                 </div>
               )}
@@ -327,9 +343,118 @@ export default function ShopsTable({ data, onRefetch }: { data: ShopItemProps[];
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Obuna muddati</Label>
-                <Input type="date" value={form.expired} onChange={(e) => setForm({ ...form, expired: e.target.value })} />
+                <Label>Latitude (ixtiyoriy)</Label>
+                <Input type="text" placeholder="41.2995" value={form.lat} onChange={(e) => setForm({ ...form, lat: e.target.value })} />
               </div>
+              <div>
+                <Label>Longitude (ixtiyoriy)</Label>
+                <Input type="text" placeholder="69.2401" value={form.lon} onChange={(e) => setForm({ ...form, lon: e.target.value })} />
+              </div>
+            </div>
+            {/* Subscription bonus / cancel ─────────────────────── */}
+            <div className="rounded-xl border border-gray-200 dark:border-white/10 bg-gradient-to-br from-amber-50/40 to-white dark:from-amber-900/10 dark:to-transparent p-4">
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div>
+                  <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Obuna muddati</div>
+                  {(() => {
+                    const baseMs = editItem?.expired ? new Date(editItem.expired).getTime() : 0;
+                    const currentLabel = editItem?.expired ? Moment(editItem.expired).format("DD.MM.YYYY") : "—";
+                    let newLabel = currentLabel;
+                    let changed = false;
+                    if (cancelSub) {
+                      newLabel = Moment().format("DD.MM.YYYY");
+                      changed = true;
+                    } else if (bonusDays > 0) {
+                      const startMs = Math.max(Date.now(), baseMs);
+                      newLabel = Moment(startMs).add(bonusDays, "days").format("DD.MM.YYYY");
+                      changed = true;
+                    }
+                    return (
+                      <div className="mt-1 flex items-center gap-2 flex-wrap">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Hozir:</span>
+                        <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{currentLabel}</span>
+                        {changed && (
+                          <>
+                            <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}><path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                            <span className={`text-sm font-bold ${cancelSub ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"}`}>{newLabel}</span>
+                            {!cancelSub && (
+                              <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[11px] font-semibold">+{bonusDays} kun</span>
+                            )}
+                            {cancelSub && (
+                              <span className="px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 text-[11px] font-semibold">Bekor</span>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+                {(bonusDays > 0 || cancelSub) && (
+                  <button
+                    type="button"
+                    onClick={() => { setBonusDays(0); setCancelSub(false); }}
+                    title="Tiklash"
+                    className="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full bg-rose-50 text-rose-500 border border-rose-200 hover:bg-rose-500 hover:text-white hover:border-rose-500 dark:bg-rose-900/20 dark:border-rose-800/40 dark:text-rose-400 dark:hover:bg-rose-500 dark:hover:text-white shadow-sm transition-all"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                )}
+              </div>
+
+              <div className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Bonus qo'shish (max 1 yil)</div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { d: 3, label: "+3 kun" },
+                  { d: 7, label: "+7 kun" },
+                  { d: 30, label: "+1 oy" },
+                  { d: 90, label: "+3 oy" },
+                  { d: 180, label: "+6 oy" },
+                  { d: 365, label: "+1 yil" },
+                ].map((opt) => {
+                  const next = Math.min(365, bonusDays + opt.d);
+                  const disabled = cancelSub || bonusDays >= 365 || next === bonusDays;
+                  return (
+                    <button
+                      key={opt.d}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => setBonusDays(next)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+                        disabled
+                          ? "border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                          : "border-emerald-200 dark:border-emerald-800/40 bg-white dark:bg-white/5 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:border-emerald-400"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {(() => {
+                const baseMs = editItem?.expired ? new Date(editItem.expired).getTime() : 0;
+                const isActive = baseMs > Date.now();
+                if (!isActive) return null;
+                return (
+                  <div className="mt-3 pt-3 border-t border-gray-200 dark:border-white/10 flex items-center justify-between gap-3">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Obunani darhol tugatish:</span>
+                    <button
+                      type="button"
+                      onClick={() => { setCancelSub((v) => !v); if (!cancelSub) setBonusDays(0); }}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-semibold border transition-all ${
+                        cancelSub
+                          ? "border-rose-500 bg-rose-500 text-white shadow-sm"
+                          : "border-rose-200 dark:border-rose-800/40 bg-white dark:bg-white/5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20"
+                      }`}
+                    >
+                      {cancelSub ? "✓ Bugun tugaydi" : "Bekor qilish"}
+                    </button>
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
               <div>
                 <Label>Avto to'lov</Label>
                 <button

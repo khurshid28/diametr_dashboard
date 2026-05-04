@@ -8,7 +8,7 @@ import { useModal } from "../../hooks/useModal";
 import Label from "../../components/form/Label";
 import Input from "../../components/form/input/InputField";
 import { Modal } from "../../components/ui/modal";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ShopsTable, {
   ShopItemProps,
 } from "../../components/tables/diametr/shopsTable";
@@ -22,7 +22,7 @@ import { toast } from "../../components/ui/toast";
 
 export interface Shop {
   name?: string;
-  region?: string;
+  region_id?: number;
   address?: string;
   mfo?: string;
   inn?: string;
@@ -30,38 +30,37 @@ export interface Shop {
   director_name?: string;
   director_phone?: string;
   image?: string;
+  lat?: string;
+  lon?: string;
 }
-
-const region_options = [
-  { value: "Toshkent sh", label: "Toshkent sh" },
-  { value: "Andijon", label: "Andijon" },
-  { value: "Buxoro", label: "Buxoro" },
-  { value: "Farg'ona", label: "Farg'ona" },
-  { value: "Jizzax", label: "Jizzax" },
-  { value: "Navoiy", label: "Navoiy" },
-  { value: "Namangan", label: "Namangan" },
-  { value: "Qashqadaryo", label: "Qashqadaryo" },
-  { value: "Samarqand", label: "Samarqand" },
-  { value: "Sirdaryo", label: "Sirdaryo" },
-  { value: "Surxondaryo", label: "Surxondaryo" },
-  { value: "Toshkent", label: "Toshkent" },
-  { value: "Xorazm", label: "Xorazm" },
-  { value: "Qoraqalpog'iston", label: "Qoraqalpog'iston" },
-];
 
 export default function ShopsPage() {
   const { isOpen, openModal, closeModal } = useModal();
 
   const emptyShop: Shop = {
-    name: "", region: "", address: "",
+    name: "", region_id: undefined, address: "",
     mfo: "", inn: "", hisob_raqam: "",
     director_name: "", director_phone: "", image: "",
+    lat: "", lon: "",
   };
 
   const [shopForm, setShopForm] = useState<Shop>(emptyShop);
   const imageResultRef = useRef<ImageFieldResult | null>(null);
   const [saving, setSaving] = useState(false);
   const [trialMonths, setTrialMonths] = useState(2);
+  const [regionOptions, setRegionOptions] = useState<{ value: string; label: string }[]>([]);
+
+  useEffect(() => {
+    axiosClient
+      .get("/region/all")
+      .then((res) => {
+        const list = Array.isArray(res.data) ? res.data : res.data?.data ?? [];
+        setRegionOptions(
+          list.map((r: any) => ({ value: String(r.id), label: r.name ?? r.name_uz ?? `#${r.id}` }))
+        );
+      })
+      .catch(() => setRegionOptions([]));
+  }, []);
 
   const fetchShops = useCallback(
     () => axiosClient.get("/shop/all-admin").then((res) => res.data),
@@ -94,7 +93,7 @@ export default function ShopsPage() {
 
       await axiosClient.post("/shop", {
         name: shopForm.name,
-        region: shopForm.region,
+        region_id: shopForm.region_id,
         address: shopForm.address,
         mfo: shopForm.mfo,
         inn: shopForm.inn,
@@ -103,6 +102,8 @@ export default function ShopsPage() {
         director_phone: shopForm.director_phone,
         image: imageFilename,
         free_trial_months: trialMonths,
+        ...(shopForm.lat ? { lat: Number(shopForm.lat) } : {}),
+        ...(shopForm.lon ? { lon: Number(shopForm.lon) } : {}),
       });
       toast.success("Do'kon qo'shildi");
       refetch();
@@ -157,16 +158,24 @@ export default function ShopsPage() {
                   <Input type="text" value={shopForm.name} onChange={f("name")} placeholder="Do'kon nomi" />
                 </div>
                 <div>
-                  <Label>Viloyat</Label>
+                  <Label>Region</Label>
                   <Select
-                    options={region_options}
+                    options={regionOptions}
                     className="dark:bg-dark-900"
-                    onChange={(v) => setShopForm((prev) => ({ ...prev, region: v }))}
+                    onChange={(v) => setShopForm((prev) => ({ ...prev, region_id: v ? Number(v) : undefined }))}
                   />
                 </div>
                 <div className="lg:col-span-2">
                   <Label>Manzil</Label>
                   <Input type="text" value={shopForm.address} onChange={f("address")} placeholder="To'liq manzil" />
+                </div>
+                <div>
+                  <Label>Latitude (ixtiyoriy)</Label>
+                  <Input type="text" value={shopForm.lat} onChange={f("lat")} placeholder="41.2995" />
+                </div>
+                <div>
+                  <Label>Longitude (ixtiyoriy)</Label>
+                  <Input type="text" value={shopForm.lon} onChange={f("lon")} placeholder="69.2401" />
                 </div>
                 <div>
                   <Label>MFO</Label>

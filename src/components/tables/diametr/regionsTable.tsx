@@ -50,7 +50,7 @@ export default function RegionsTable({ data, onRefetch }: { data: RegionItemProp
     try {
       if (editItem) {
         await axiosClient.put(`/region/${editItem.id}`, { name: formName });
-        toast.success("Viloyat yangilandi");
+        toast.success("Region yangilandi");
       }
       onRefetch?.(); closeModal();
     } catch (e: any) {
@@ -61,7 +61,7 @@ export default function RegionsTable({ data, onRefetch }: { data: RegionItemProp
   const handleDelete = async (id: number) => {
     try {
       await axiosClient.delete(`/region/${id}`);
-      toast.success("Viloyat o'chirildi");
+      toast.success("Region o'chirildi");
       onRefetch?.();
     } catch { toast.error("Xatolik yuz berdi"); }
   };
@@ -81,7 +81,7 @@ export default function RegionsTable({ data, onRefetch }: { data: RegionItemProp
           <TableHeader>
             <TableRow>
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">#</TableCell>
-              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Viloyat nomi</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Region nomi</TableCell>
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Yaratilgan</TableCell>
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Amallar</TableCell>
             </TableRow>
@@ -112,11 +112,11 @@ export default function RegionsTable({ data, onRefetch }: { data: RegionItemProp
       <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[500px] m-4">
         <div className="relative w-full p-4 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-8">
           <div className="px-2 pr-14 mb-6">
-            <h4 className="text-xl font-semibold text-gray-800 dark:text-white">Viloyatni tahrirlash</h4>
+            <h4 className="text-xl font-semibold text-gray-800 dark:text-white">Regionni tahrirlash</h4>
           </div>
           <div className="px-2">
-            <Label>Viloyat nomi</Label>
-            <Input type="text" placeholder="Viloyat nomi" value={formName} onChange={(e) => setFormName(e.target.value)} />
+            <Label>Region nomi</Label>
+            <Input type="text" placeholder="Region nomi" value={formName} onChange={(e) => setFormName(e.target.value)} />
           </div>
           <div className="flex items-center gap-3 px-2 mt-6 justify-end">
             <Button size="sm" variant="outline" onClick={closeModal}>Bekor qilish</Button>

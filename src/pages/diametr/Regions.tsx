@@ -40,13 +40,13 @@ export default function RegionsPage() {
 
   const handleAdding = async () => {
     if (!Region.name || Region.name.length < 4) {
-      toast.error("Hudud nomi kamida 4 ta belgi bo'lishi kerak");
+      toast.error("Region nomi kamida 4 ta belgi bo'lishi kerak");
       return;
     }
     setSaving(true);
     try {
       await axiosClient.post("/region", { name: Region.name });
-      toast.success("Hudud qo'shildi");
+      toast.success("Region qo'shildi");
       refetch();
       closeModal();
       setRegion(emptyRegion);
@@ -84,13 +84,13 @@ export default function RegionsPage() {
         <div className="relative w-full p-4 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">Add Region</h4>
-            <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">Yangi hudud qo'shish.</p>
+            <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">Yangi region qo'shish.</p>
           </div>
           <form className="flex flex-col">
             <div className="px-2 overflow-y-auto custom-scrollbar">
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                 <div>
-                  <Label>Hudud nomi</Label>
+                  <Label>Region nomi</Label>
                   <Input
                     type="text"
                     placeholder="Masalan: Toshkent shahri"

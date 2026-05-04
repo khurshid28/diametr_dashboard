@@ -34,7 +34,7 @@ export interface Ad {
 const type_options = [
   { value: "SHOP", label: "Do'kon (SHOP)" },
   { value: "WORKER", label: "Ishchi (WORKER)" },
-  { value: "REGION", label: "Hudud (REGION)" },
+  { value: "REGION", label: "Region (REGION)" },
   { value: "PRODUCT", label: "Mahsulot (PRODUCT)" },
 ];
 
@@ -142,8 +142,8 @@ export default function AdsPage() {
                 )}
                 {Ad.type === "REGION" && (
                   <div>
-                    <Label>Hudud ID</Label>
-                    <Input type="number" placeholder="Hudud ID raqami" value={Ad.region_id} onChange={(e) => setAd({ ...Ad, region_id: e.target.value })} />
+                    <Label>Region ID</Label>
+                    <Input type="number" placeholder="Region ID raqami" value={Ad.region_id} onChange={(e) => setAd({ ...Ad, region_id: e.target.value })} />
                   </div>
                 )}
                 {Ad.type === "WORKER" && (
