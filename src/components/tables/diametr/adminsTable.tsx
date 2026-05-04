@@ -46,41 +46,6 @@ const gradientFor = (seed: string | number) => {
   return AVATAR_GRADIENTS[h % AVATAR_GRADIENTS.length];
 };
 
-// Reusable inline copy button
-function CopyBtn({ value, label }: { value: string; label?: string }) {
-  const [done, setDone] = useState(false);
-  const handle = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    try {
-      await navigator.clipboard.writeText(value);
-      setDone(true);
-      toast.success(`${label ?? "Nusxalandi"}: ${value}`);
-      setTimeout(() => setDone(false), 1200);
-    } catch {
-      toast.error("Nusxalab bo'lmadi");
-    }
-  };
-  return (
-    <button
-      type="button"
-      onClick={handle}
-      title="Nusxalash"
-      className="inline-flex items-center justify-center w-6 h-6 rounded-md text-gray-400 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-colors flex-shrink-0"
-    >
-      {done ? (
-        <svg viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-emerald-500">
-          <path fillRule="evenodd" d="M16.704 5.29a1 1 0 010 1.42l-7.5 7.5a1 1 0 01-1.42 0l-3.5-3.5a1 1 0 111.42-1.42L8.5 12.08l6.79-6.79a1 1 0 011.414 0z" clipRule="evenodd" />
-        </svg>
-      ) : (
-        <svg viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
-          <path d="M7 3a2 2 0 00-2 2v8a2 2 0 002 2h6a2 2 0 002-2V8.414A2 2 0 0014.414 7L11 3.586A2 2 0 009.586 3H7z" />
-          <path d="M3 7a2 2 0 012-2v10a2 2 0 002 2h6a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
-        </svg>
-      )}
-    </button>
-  );
-}
-
 // Password cell — yashirin/ko'rsatish + copy
 function PasswordCell({ value }: { value?: string }) {
   const [shown, setShown] = useState(false);
@@ -108,7 +73,6 @@ function PasswordCell({ value }: { value?: string }) {
           </svg>
         )}
       </button>
-      <CopyBtn value={value} label="Parol" />
     </div>
   );
 }
@@ -138,13 +102,20 @@ export default function AdminsTable({
     }).catch(() => {});
   }, []);
 
+  const sorted = [...data].sort((a, b) => {
+    const ta = new Date(a.createdt ?? a.createdAt ?? 0).getTime();
+    const tb = new Date(b.createdt ?? b.createdAt ?? 0).getTime();
+    if (tb !== ta) return tb - ta;
+    return (b.id ?? 0) - (a.id ?? 0);
+  });
+
   const filtered = search.trim()
-    ? data.filter((a) =>
+    ? sorted.filter((a) =>
         [a.fullname, a.phone, a.shop?.name].some((v) =>
           v?.toLowerCase().includes(search.toLowerCase())
         )
       )
-    : data;
+    : sorted;
 
   const pageSize = parseInt(showValue);
   const maxPage  = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -301,10 +272,7 @@ export default function AdminsTable({
                 </TableCell>
                 <TableCell className="px-5 py-4">
                   {item.phone ? (
-                    <div className="inline-flex items-center gap-1.5">
-                      <span className="text-sm text-gray-700 dark:text-gray-300 font-mono">{item.phone}</span>
-                      <CopyBtn value={item.phone} label="Telefon" />
-                    </div>
+                    <span className="text-sm text-gray-700 dark:text-gray-300 font-mono">{item.phone}</span>
                   ) : (
                     <span className="text-gray-400 text-sm">-</span>
                   )}
@@ -349,15 +317,12 @@ export default function AdminsTable({
                 </TableCell>
                 <TableCell className="px-5 py-4">
                   {(item.chatid ?? item.chat_id) ? (
-                    <div className="inline-flex items-center gap-1">
-                      <span className="inline-flex items-center gap-1 text-xs font-mono bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 px-2 py-1 rounded-md">
-                        <svg viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 flex-shrink-0">
-                          <path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.926A1.5 1.5 0 005.135 9.25h6.115a.75.75 0 010 1.5H5.135a1.5 1.5 0 00-1.442 1.086l-1.414 4.926a.75.75 0 00.826.95 28.896 28.896 0 0015.293-7.154.75.75 0 000-1.115A28.897 28.897 0 003.105 2.289z" />
-                        </svg>
-                        {item.chatid ?? item.chat_id}
-                      </span>
-                      <CopyBtn value={String(item.chatid ?? item.chat_id)} label="Chat ID" />
-                    </div>
+                    <span className="inline-flex items-center gap-1 text-xs font-mono bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 px-2 py-1 rounded-md">
+                      <svg viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 flex-shrink-0">
+                        <path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.926A1.5 1.5 0 005.135 9.25h6.115a.75.75 0 010 1.5H5.135a1.5 1.5 0 00-1.442 1.086l-1.414 4.926a.75.75 0 00.826.95 28.896 28.896 0 0015.293-7.154.75.75 0 000-1.115A28.897 28.897 0 003.105 2.289z" />
+                      </svg>
+                      {item.chatid ?? item.chat_id}
+                    </span>
                   ) : (
                     <span className="text-gray-400 text-sm">-</span>
                   )}
