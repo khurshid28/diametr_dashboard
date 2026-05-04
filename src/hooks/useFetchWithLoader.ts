@@ -22,17 +22,31 @@ export function useFetchWithLoader<T>({
   const [error, setError] = useState<any>(null);
   const hasLoadedOnce = useRef(false);
 
+  // Keep latest callbacks in refs so that `fetchData` stays stable across renders
+  // (otherwise inline `fetcher` arrow functions create an infinite re-fetch loop).
+  const fetcherRef = useRef(fetcher);
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+  const successMessageRef = useRef(successMessage);
+
+  useEffect(() => {
+    fetcherRef.current = fetcher;
+    onSuccessRef.current = onSuccess;
+    onErrorRef.current = onError;
+    successMessageRef.current = successMessage;
+  });
+
   const fetchData = useCallback(async () => {
     // Only show skeleton on the very first fetch; background refetches are silent
     if (!hasLoadedOnce.current) {
       setIsLoading(true);
     }
     try {
-      const result = await fetcher();
+      const result = await fetcherRef.current();
       setData(result);
       hasLoadedOnce.current = true;
-      if (successMessage) toast.success(successMessage);
-      onSuccess?.(result);
+      if (successMessageRef.current) toast.success(successMessageRef.current);
+      onSuccessRef.current?.(result);
     } catch (err) {
       setError(err);
       if (axios.isAxiosError(err)) {
@@ -40,11 +54,11 @@ export function useFetchWithLoader<T>({
       } else {
         toast.error("Xatolik yuz berdi");
       }
-      onError?.(err);
+      onErrorRef.current?.(err);
     } finally {
       setIsLoading(false);
     }
-  }, [fetcher, onSuccess, onError, successMessage]);
+  }, []);
 
   useEffect(() => {
     if (autoFetch) fetchData();

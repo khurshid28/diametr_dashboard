@@ -2,7 +2,6 @@ import TableActions from "./TableActions";
 import TableToolbar from "./TableToolbar";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../ui/table";
 import Moment from "moment";
-import Badge from "../../ui/badge/Badge";
 import Button from "../../ui/button/Button";
 import { Modal } from "../../ui/modal";
 import Input from "../../form/input/InputField";
@@ -19,6 +18,7 @@ export interface AdminItemProps {
   fullname?: string;
   phone?: string;
   image?: string;
+  password?: string;
   chat_id?: string;
   chatid?: string;
   shop_id?: number;
@@ -26,6 +26,91 @@ export interface AdminItemProps {
   role?: string;
   createdt?: string;
   createdAt?: string;
+}
+
+// Tasodifiy chiroyli rang generator (avatar fon uchun)
+const AVATAR_GRADIENTS = [
+  "from-violet-400 to-violet-600",
+  "from-blue-400 to-indigo-600",
+  "from-pink-400 to-rose-600",
+  "from-emerald-400 to-teal-600",
+  "from-amber-400 to-orange-600",
+  "from-cyan-400 to-blue-600",
+  "from-fuchsia-400 to-purple-600",
+  "from-lime-400 to-green-600",
+];
+const gradientFor = (seed: string | number) => {
+  const s = String(seed);
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return AVATAR_GRADIENTS[h % AVATAR_GRADIENTS.length];
+};
+
+// Reusable inline copy button
+function CopyBtn({ value, label }: { value: string; label?: string }) {
+  const [done, setDone] = useState(false);
+  const handle = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(value);
+      setDone(true);
+      toast.success(`${label ?? "Nusxalandi"}: ${value}`);
+      setTimeout(() => setDone(false), 1200);
+    } catch {
+      toast.error("Nusxalab bo'lmadi");
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={handle}
+      title="Nusxalash"
+      className="inline-flex items-center justify-center w-6 h-6 rounded-md text-gray-400 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-colors flex-shrink-0"
+    >
+      {done ? (
+        <svg viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-emerald-500">
+          <path fillRule="evenodd" d="M16.704 5.29a1 1 0 010 1.42l-7.5 7.5a1 1 0 01-1.42 0l-3.5-3.5a1 1 0 111.42-1.42L8.5 12.08l6.79-6.79a1 1 0 011.414 0z" clipRule="evenodd" />
+        </svg>
+      ) : (
+        <svg viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+          <path d="M7 3a2 2 0 00-2 2v8a2 2 0 002 2h6a2 2 0 002-2V8.414A2 2 0 0014.414 7L11 3.586A2 2 0 009.586 3H7z" />
+          <path d="M3 7a2 2 0 012-2v10a2 2 0 002 2h6a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
+// Password cell — yashirin/ko'rsatish + copy
+function PasswordCell({ value }: { value?: string }) {
+  const [shown, setShown] = useState(false);
+  if (!value) return <span className="text-gray-400 text-sm">-</span>;
+  return (
+    <div className="inline-flex items-center gap-1.5 bg-gray-50 dark:bg-white/[0.04] rounded-md px-2 py-1">
+      <span className="font-mono text-xs text-gray-700 dark:text-gray-300 select-all min-w-[70px]">
+        {shown ? value : "•".repeat(Math.min(value.length, 8))}
+      </span>
+      <button
+        type="button"
+        onClick={() => setShown((s) => !s)}
+        title={shown ? "Yashirish" : "Ko'rsatish"}
+        className="inline-flex items-center justify-center w-6 h-6 rounded text-gray-400 hover:text-brand-500 hover:bg-white dark:hover:bg-white/[0.06] transition-colors"
+      >
+        {shown ? (
+          <svg viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+            <path fillRule="evenodd" d="M3.28 2.22a.75.75 0 00-1.06 1.06l14.5 14.5a.75.75 0 101.06-1.06l-1.745-1.745a10.029 10.029 0 003.3-4.38 1.651 1.651 0 000-1.185A10.004 10.004 0 009.999 3a9.956 9.956 0 00-4.744 1.194L3.28 2.22zM7.752 6.69l1.092 1.092a2.5 2.5 0 013.374 3.373l1.091 1.092a4 4 0 00-5.557-5.557z" clipRule="evenodd" />
+            <path d="M10.748 13.93l2.523 2.523a9.987 9.987 0 01-3.27.547c-4.258 0-7.894-2.66-9.337-6.41a1.651 1.651 0 010-1.186A10.007 10.007 0 012.839 6.02L6.07 9.252a4 4 0 004.678 4.678z" />
+          </svg>
+        ) : (
+          <svg viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+            <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
+            <path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.186A10.004 10.004 0 0110 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0110 17c-4.257 0-7.893-2.66-9.336-6.41zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+          </svg>
+        )}
+      </button>
+      <CopyBtn value={value} label="Parol" />
+    </div>
+  );
 }
 
 const emptyForm = { fullname: "", phone: "", shop_id: "", chatid: "" };
@@ -131,6 +216,7 @@ export default function AdminsTable({
         ID: a.id,
         "To'liq ism": a.fullname ?? "",
         Telefon: a.phone ?? "",
+        Parol: a.password ?? "",
         "Do'kon": a.shop?.name ?? "",
         "Telegram Chat ID": a.chatid ?? a.chat_id ?? "",
         Yaratilgan: Moment(a.createdt ?? a.createdAt).format("DD.MM.YYYY"),
@@ -166,9 +252,9 @@ export default function AdminsTable({
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">#</TableCell>
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Admin</TableCell>
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Telefon</TableCell>
+              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Parol</TableCell>
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Do'kon</TableCell>
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Chat ID</TableCell>
-              <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Rol</TableCell>
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Sana</TableCell>
               <TableCell isHeader className="px-5 py-3 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Amallar</TableCell>
             </TableRow>
@@ -191,21 +277,65 @@ export default function AdminsTable({
                       <img
                         src={`${staticUrl}/${item.image}`}
                         alt={item.fullname}
-                        className="w-9 h-9 rounded-full object-cover ring-2 ring-white dark:ring-white/[0.06] shadow-sm flex-shrink-0"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        className="w-10 h-10 rounded-full object-cover ring-2 ring-white dark:ring-white/[0.08] shadow-md flex-shrink-0"
+                        onError={(e) => {
+                          const t = e.target as HTMLImageElement;
+                          t.style.display = "none";
+                          (t.nextElementSibling as HTMLElement)?.style.removeProperty("display");
+                        }}
                       />
-                    ) : (
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-400 to-violet-600 flex items-center justify-center flex-shrink-0 text-white text-sm font-semibold shadow-sm">
-                        {(item.fullname ?? item.phone ?? "?")[0]?.toUpperCase()}
-                      </div>
-                    )}
-                    <span className="text-sm font-medium text-gray-800 dark:text-white">
-                      {item.fullname ?? <span className="text-gray-400 italic">Ism yo'q</span>}
-                    </span>
+                    ) : null}
+                    <div
+                      className={`w-10 h-10 rounded-full bg-gradient-to-br ${gradientFor(item.id)} flex items-center justify-center flex-shrink-0 text-white text-sm font-semibold shadow-md ring-2 ring-white dark:ring-white/[0.08]`}
+                      style={{ display: item.image ? "none" : "flex" }}
+                    >
+                      {(item.fullname ?? item.phone ?? "?").trim()[0]?.toUpperCase()}
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-sm font-semibold text-gray-800 dark:text-white truncate">
+                        {item.fullname ?? <span className="text-gray-400 italic font-normal">Ism yo'q</span>}
+                      </span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">ID: {item.id}</span>
+                    </div>
                   </div>
                 </TableCell>
-                <TableCell className="px-5 py-4 text-sm text-gray-600 dark:text-gray-300 font-mono">
-                  {item.phone ?? "-"}
+                <TableCell className="px-5 py-4">
+                  {item.phone ? (
+                    <div className="inline-flex items-center gap-1.5">
+                      <span className="text-sm text-gray-700 dark:text-gray-300 font-mono">{item.phone}</span>
+                      <CopyBtn value={item.phone} label="Telefon" />
+                    </div>
+                  ) : (
+                    <span className="text-gray-400 text-sm">-</span>
+                  )}
+                </TableCell>
+                <TableCell className="px-5 py-4">
+                  <div className="flex items-center gap-2">
+                    <PasswordCell value={item.password} />
+                    {item.password && item.phone && (
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          const text = `Login: ${item.phone}\nParol: ${item.password}`;
+                          try {
+                            await navigator.clipboard.writeText(text);
+                            toast.success("Login va parol nusxalandi");
+                          } catch {
+                            toast.error("Nusxalab bo'lmadi");
+                          }
+                        }}
+                        title="Login + parolni birga nusxalash"
+                        className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-500/10 px-2 py-1 rounded-md transition-colors whitespace-nowrap"
+                      >
+                        <svg viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                          <path d="M7 3a2 2 0 00-2 2v8a2 2 0 002 2h6a2 2 0 002-2V8.414A2 2 0 0014.414 7L11 3.586A2 2 0 009.586 3H7z" />
+                          <path d="M3 7a2 2 0 012-2v10a2 2 0 002 2h6a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+                        </svg>
+                        Login + parol
+                      </button>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="px-5 py-4">
                   {item.shop ? (
@@ -219,18 +349,18 @@ export default function AdminsTable({
                 </TableCell>
                 <TableCell className="px-5 py-4">
                   {(item.chatid ?? item.chat_id) ? (
-                    <span className="inline-flex items-center gap-1 text-xs font-mono bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 px-2 py-1 rounded-md">
-                      <svg viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 flex-shrink-0">
-                        <path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.926A1.5 1.5 0 005.135 9.25h6.115a.75.75 0 010 1.5H5.135a1.5 1.5 0 00-1.442 1.086l-1.414 4.926a.75.75 0 00.826.95 28.896 28.896 0 0015.293-7.154.75.75 0 000-1.115A28.897 28.897 0 003.105 2.289z" />
-                      </svg>
-                      {item.chatid ?? item.chat_id}
-                    </span>
+                    <div className="inline-flex items-center gap-1">
+                      <span className="inline-flex items-center gap-1 text-xs font-mono bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 px-2 py-1 rounded-md">
+                        <svg viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 flex-shrink-0">
+                          <path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.926A1.5 1.5 0 005.135 9.25h6.115a.75.75 0 010 1.5H5.135a1.5 1.5 0 00-1.442 1.086l-1.414 4.926a.75.75 0 00.826.95 28.896 28.896 0 0015.293-7.154.75.75 0 000-1.115A28.897 28.897 0 003.105 2.289z" />
+                        </svg>
+                        {item.chatid ?? item.chat_id}
+                      </span>
+                      <CopyBtn value={String(item.chatid ?? item.chat_id)} label="Chat ID" />
+                    </div>
                   ) : (
                     <span className="text-gray-400 text-sm">-</span>
                   )}
-                </TableCell>
-                <TableCell className="px-5 py-4">
-                  <Badge color="warning" size="sm">{item.role ?? "ADMIN"}</Badge>
                 </TableCell>
                 <TableCell className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400">
                   {Moment(item.createdt ?? item.createdAt).format("DD.MM.YYYY")}
